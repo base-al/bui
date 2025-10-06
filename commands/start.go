@@ -85,7 +85,7 @@ func startApplication(cmd *mamba.Command, args []string) {
 			fmt.Println("Continuing without auto-generated documentation...")
 		}
 
-		fmt.Println("📚 Swagger documentation will be available at /swagger/ when server starts")
+		fmt.Println("Swagger documentation will be available at /swagger/ when server starts")
 	}
 
 	// Run normally

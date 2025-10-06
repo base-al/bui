@@ -72,15 +72,15 @@ if [ "$OS" != "windows" ]; then
         if [ "$INSTALL_CHOICE" = "2" ]; then
             GLOBAL_INSTALL=true
             echo ""
-            echo "⚠️  Global installation requires sudo access..."
+            echo "Global installation requires sudo access..."
             echo "You will be prompted for your password."
             echo ""
             if ! sudo -v; then
-                echo "❌ Error: sudo access required for global installation"
+                echo "Error: sudo access required for global installation"
                 echo "Please run the script again and choose option 1 for local installation."
                 exit 1
             fi
-            echo "✓ Sudo access granted"
+            echo "Sudo access granted"
         fi
     else
         # Non-interactive mode (piped from curl) - show info and default to local
@@ -89,10 +89,10 @@ if [ "$OS" != "windows" ]; then
         echo "║              Bui CLI Installation                          ║"
         echo "╚════════════════════════════════════════════════════════════╝"
         echo ""
-        echo "📍 Installation mode: Local (non-interactive)"
+        echo "Installation mode: Local (non-interactive)"
         echo "   Location: ~/.base/bin"
         echo ""
-        echo "💡 To install globally with sudo:"
+        echo "To install globally with sudo:"
         echo "   curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh -o install.sh"
         echo "   bash install.sh"
         echo "   rm install.sh"
@@ -129,7 +129,7 @@ if [ -f "$BIN_DIR/$BINARY_NAME" ] && [ -t 0 ]; then
         EXISTING_VERSION=$("$BIN_DIR/$BINARY_NAME" version 2>/dev/null | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*' || echo "unknown")
     fi
     echo ""
-    echo "⚠️  Bui CLI is already installed"
+    echo "Warning: Bui CLI is already installed"
     if [ "$EXISTING_VERSION" != "unknown" ]; then
         echo "   Current version: $EXISTING_VERSION"
     fi
@@ -153,13 +153,13 @@ echo "Platform: $OS $ARCH"
 echo "→ Fetching latest release information..."
 API_RESPONSE=$(curl -s https://api.github.com/repos/base-al/bui/releases/latest)
 if [ $? -ne 0 ]; then
-    echo "❌ Error: Failed to fetch release information"
+    echo "Error: Failed to fetch release information"
     exit 1
 fi
 
 LATEST_RELEASE=$(echo "$API_RESPONSE" | grep '"tag_name"' | head -n1 | cut -d '"' -f 4)
 if [ -z "$LATEST_RELEASE" ]; then
-    echo "❌ Error: Could not determine latest version"
+    echo "Error: Could not determine latest version"
     echo "API Response debug info:"
     echo "$API_RESPONSE" | head -n 10
     echo "Please check if the repository exists and has releases"
@@ -167,7 +167,7 @@ if [ -z "$LATEST_RELEASE" ]; then
     exit 1
 fi
 
-echo "✓ Latest version: $LATEST_RELEASE"
+echo "OK: Latest version: $LATEST_RELEASE"
 
 # Download the appropriate binary
 DOWNLOAD_URL="https://github.com/base-al/bui/releases/download/$LATEST_RELEASE/bui_${OS}_${ARCH}.tar.gz"
@@ -182,18 +182,18 @@ cd "$TMP_DIR"
 
 if [ "$OS" = "windows" ]; then
     if ! curl -sL "$DOWNLOAD_URL" -o bui.zip; then
-        echo "❌ Error: Download failed"
+        echo "Error: Download failed"
         exit 1
     fi
     unzip -q bui.zip
 else
     if ! curl -sL "$DOWNLOAD_URL" | tar xz; then
-        echo "❌ Error: Download failed"
+        echo "Error: Download failed"
         exit 1
     fi
 fi
 
-echo "✓ Download complete"
+echo "OK: Download complete"
 
 # Install the binary
 echo ""
@@ -210,7 +210,7 @@ fi
 cd - > /dev/null
 rm -rf "$TMP_DIR"
 
-echo "✓ Installation complete"
+echo "OK: Installation complete"
 
 # Install Go dependencies
 echo ""
@@ -223,14 +223,14 @@ echo ""
 if command -v go >/dev/null 2>&1; then
     echo "→ Installing swag (API documentation generator)..."
     if ! go install github.com/swaggo/swag/cmd/swag@latest 2>/dev/null; then
-        echo "⚠️  Warning: Failed to install swag"
+        echo "Warning: Failed to install swag"
         echo "   You can install it manually later with:"
         echo "   go install github.com/swaggo/swag/cmd/swag@latest"
     else
-        echo "✓ swag installed successfully"
+        echo "OK: swag installed successfully"
     fi
 else
-    echo "⚠️  Go is not installed or not in PATH"
+    echo "Warning: Go is not installed or not in PATH"
     echo "   Bui CLI dependencies (swag) will be installed automatically when needed."
     echo "   To install Go, visit: https://golang.org/dl/"
 fi
@@ -240,7 +240,7 @@ echo "════════════════════════�
 echo "  Installation Summary"
 echo "════════════════════════════════════════════════════════════"
 echo ""
-echo "✓ Bui CLI $LATEST_RELEASE installed successfully!"
+echo "OK: Bui CLI $LATEST_RELEASE installed successfully!"
 echo "  Location: $BIN_DIR/bui"
 
 # Only show PATH instructions for local installations
@@ -249,7 +249,7 @@ if [ "$GLOBAL_INSTALL" = false ]; then
     if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
         echo ""
         echo "════════════════════════════════════════════════════════════"
-        echo "  ⚠️  Action Required: Add to PATH"
+        echo "  Warning: Action Required: Add to PATH"
         echo "════════════════════════════════════════════════════════════"
         echo ""
         if [ "$OS" = "darwin" ] || [ "$OS" = "linux" ]; then
@@ -278,13 +278,13 @@ if [ "$GLOBAL_INSTALL" = false ]; then
         echo ""
     else
         echo ""
-        echo "✓ ~/.base/bin is already in your PATH"
+        echo "OK: ~/.base/bin is already in your PATH"
     fi
 fi
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "  🎉 Ready to Go!"
+echo "  Ready to Go!"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 echo "Get started:"

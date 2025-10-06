@@ -12,7 +12,7 @@ import (
 // Version information
 var (
 	// Version is the current version of Bui CLI
-	Version = "0.0.3"
+	Version = "0.0.1"
 
 	// CommitHash is the git commit hash at build time
 	CommitHash = "unknown"
@@ -129,35 +129,35 @@ func CompareVersions(v1, v2 string) int {
 	// Remove 'v' prefix if present
 	v1 = strings.TrimPrefix(v1, "v")
 	v2 = strings.TrimPrefix(v2, "v")
-	
+
 	if v1 == v2 {
 		return 0
 	}
-	
+
 	// Split versions into parts
 	parts1 := strings.Split(v1, ".")
 	parts2 := strings.Split(v2, ".")
-	
+
 	// Pad shorter version with zeros
 	maxLen := len(parts1)
 	if len(parts2) > maxLen {
 		maxLen = len(parts2)
 	}
-	
+
 	for len(parts1) < maxLen {
 		parts1 = append(parts1, "0")
 	}
 	for len(parts2) < maxLen {
 		parts2 = append(parts2, "0")
 	}
-	
+
 	// Compare each part numerically
 	for i := 0; i < maxLen; i++ {
 		// Convert to integers for proper numeric comparison
 		var num1, num2 int
 		fmt.Sscanf(parts1[i], "%d", &num1)
 		fmt.Sscanf(parts2[i], "%d", &num2)
-		
+
 		if num1 < num2 {
 			return -1
 		}
@@ -165,14 +165,14 @@ func CompareVersions(v1, v2 string) int {
 			return 1
 		}
 	}
-	
+
 	return 0
 }
 
 // FormatUpdateMessage returns a formatted update message
 func FormatUpdateMessage(current, latest, releaseURL, releaseNotes string) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("\n📦 Update available! %s → %s\n", current, latest))
+	sb.WriteString(fmt.Sprintf("\nUpdate available! %s -> %s\n", current, latest))
 	sb.WriteString("Run: bui upgrade\n")
 	sb.WriteString(fmt.Sprintf("Release notes: %s\n", releaseURL))
 	if releaseNotes != "" {
