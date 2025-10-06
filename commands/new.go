@@ -104,9 +104,15 @@ func cloneWithSpinner(cmd *mamba.Command, name, repoURL, targetDir string) error
 		return nil
 	}
 
-	return spinner.WithSpinner(fmt.Sprintf("Cloning %s template...", name), func() error {
+	err := spinner.WithSpinner(fmt.Sprintf("Cloning %s template...", name), func() error {
 		return cloneTemplate(repoURL, targetDir)
 	})
+
+	if err != nil {
+		return fmt.Errorf("failed to clone %s: %w", name, err)
+	}
+
+	return nil
 }
 
 func cleanupAndInit(cmd *mamba.Command, projectName string) error {
