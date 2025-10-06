@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/base-go/mamba"
 )
@@ -62,22 +63,29 @@ func createNewProject(cmd *mamba.Command, args []string) {
 	}
 
 	// Clone backend template with spinner
-	if err := cloneWithSpinner(cmd, "backend", "git@github.com:base-al/admin-api-template.git", "admin-api-template"); err != nil {
+	backendDir := projectName + "-api"
+	if err := cloneWithSpinner(cmd, "backend", "git@github.com:base-al/admin-api-template.git", backendDir); err != nil {
 		cmd.PrintError(fmt.Sprintf("Failed to clone backend template: %v", err))
 		cleanup(projectName)
 		os.Exit(1)
 	}
 
 	// Clone frontend template with spinner
-	if err := cloneWithSpinner(cmd, "frontend", "git@github.com:base-al/admin-template.git", "admin-template"); err != nil {
+	frontendDir := projectName + "-app"
+	if err := cloneWithSpinner(cmd, "frontend", "git@github.com:base-al/admin-template.git", frontendDir); err != nil {
 		cmd.PrintError(fmt.Sprintf("Failed to clone frontend template: %v", err))
 		cleanup(projectName)
 		os.Exit(1)
 	}
 
 	// Cleanup and initialize
-	if err := cleanupAndInit(cmd, projectName); err != nil {
+	if err := cleanupAndInit(cmd, projectName, backendDir, frontendDir); err != nil {
 		cmd.PrintWarning(fmt.Sprintf("Setup incomplete: %v", err))
+	}
+
+	// Update configuration files
+	if err := updateProjectFiles(cmd, projectName, backendDir, frontendDir); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to update project files: %v", err))
 	}
 
 	// Print success message and next steps
@@ -114,13 +122,93 @@ func cloneWithSpinner(cmd *mamba.Command, name, repoURL, targetDir string) error
 	return nil
 }
 
-func cleanupAndInit(cmd *mamba.Command, projectName string) error {
+func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
+	// Update backend Main.go package name
+	mainGoPath := filepath.Join(backendDir, "Main.go")
+	if _, err := os.Stat(mainGoPath); err == nil {
+		if Verbose {
+			cmd.PrintInfo("Updating Main.go package name...")
+		}
+
+		content, err := os.ReadFile(mainGoPath)
+		if err != nil {
+			return fmt.Errorf("failed to read Main.go: %w", err)
+		}
+
+		// Replace module name in go.mod style (base -> projectName)
+		contentStr := string(content)
+		// This assumes the template uses "base" as module name
+		contentStr = strings.ReplaceAll(contentStr, "module base", fmt.Sprintf("module %s", projectName))
+		contentStr = strings.ReplaceAll(contentStr, "\"base/", fmt.Sprintf("\"%s/", projectName))
+
+		if err := os.WriteFile(mainGoPath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write Main.go: %w", err)
+		}
+
+		if Verbose {
+			cmd.PrintSuccess("Updated Main.go")
+		}
+	}
+
+	// Update backend go.mod
+	goModPath := filepath.Join(backendDir, "go.mod")
+	if _, err := os.Stat(goModPath); err == nil {
+		if Verbose {
+			cmd.PrintInfo("Updating go.mod...")
+		}
+
+		content, err := os.ReadFile(goModPath)
+		if err != nil {
+			return fmt.Errorf("failed to read go.mod: %w", err)
+		}
+
+		contentStr := string(content)
+		contentStr = strings.ReplaceAll(contentStr, "module base", fmt.Sprintf("module %s", projectName))
+
+		if err := os.WriteFile(goModPath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write go.mod: %w", err)
+		}
+
+		if Verbose {
+			cmd.PrintSuccess("Updated go.mod")
+		}
+	}
+
+	// Update frontend package.json
+	packageJsonPath := filepath.Join(frontendDir, "package.json")
+	if _, err := os.Stat(packageJsonPath); err == nil {
+		if Verbose {
+			cmd.PrintInfo("Updating package.json...")
+		}
+
+		content, err := os.ReadFile(packageJsonPath)
+		if err != nil {
+			return fmt.Errorf("failed to read package.json: %w", err)
+		}
+
+		contentStr := string(content)
+		// Replace the name field (assumes format: "name": "admin-template")
+		contentStr = strings.ReplaceAll(contentStr, `"name": "admin-template"`, fmt.Sprintf(`"name": "%s"`, projectName))
+
+		if err := os.WriteFile(packageJsonPath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write package.json: %w", err)
+		}
+
+		if Verbose {
+			cmd.PrintSuccess("Updated package.json")
+		}
+	}
+
+	return nil
+}
+
+func cleanupAndInit(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
 	// Remove .git directories from templates
 	if Verbose {
 		cmd.PrintInfo("Cleaning up template git histories...")
 	}
-	os.RemoveAll(filepath.Join("admin-api-template", ".git"))
-	os.RemoveAll(filepath.Join("admin-template", ".git"))
+	os.RemoveAll(filepath.Join(backendDir, ".git"))
+	os.RemoveAll(filepath.Join(frontendDir, ".git"))
 
 	// Initialize new git repository
 	if !Verbose {
@@ -138,7 +226,7 @@ func cleanupAndInit(cmd *mamba.Command, projectName string) error {
 	if Verbose {
 		cmd.PrintInfo("Creating project README...")
 	}
-	createProjectReadme(projectName)
+	createProjectReadme(projectName, backendDir, frontendDir)
 
 	return nil
 }
@@ -176,15 +264,15 @@ Thumbs.db
 	return nil
 }
 
-func createProjectReadme(projectName string) {
+func createProjectReadme(projectName, backendDir, frontendDir string) {
 	readme := fmt.Sprintf(`# %s
 
 Base Stack project created with [Bui CLI](https://github.com/base-al/bui).
 
 ## Project Structure
 
-- **admin-api-template/** - Backend API (Go + Base Framework)
-- **admin-template/** - Frontend Admin Dashboard (Nuxt 4 + TypeScript)
+- **%s/** - Backend API (Go + Base Framework)
+- **%s/** - Frontend Admin Dashboard (Nuxt 4 + TypeScript)
 
 ## Getting Started
 
@@ -198,7 +286,7 @@ Base Stack project created with [Bui CLI](https://github.com/base-al/bui).
 ### Backend Setup
 
 ` + "```bash" + `
-cd admin-api-template
+cd %s
 cp .env.sample .env
 # Edit .env with your database credentials
 go mod tidy
@@ -210,7 +298,7 @@ Backend will run on http://localhost:8000
 ### Frontend Setup
 
 ` + "```bash" + `
-cd admin-template
+cd %s
 bun install
 bun dev
 ` + "```" + `
@@ -251,12 +339,15 @@ bui g frontend product name:string price:float
 ## License
 
 MIT
-`, projectName)
+`, projectName, backendDir, frontendDir, backendDir, backendDir, frontendDir, frontendDir)
 
 	os.WriteFile("README.md", []byte(readme), 0644)
 }
 
 func printSuccessMessage(cmd *mamba.Command, projectName string) {
+	backendDir := projectName + "-api"
+	frontendDir := projectName + "-app"
+
 	cmd.PrintInfo("")
 	cmd.PrintInfo("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	cmd.PrintSuccess(fmt.Sprintf("Project '%s' created successfully!", projectName))
@@ -267,14 +358,14 @@ func printSuccessMessage(cmd *mamba.Command, projectName string) {
 	cmd.PrintInfo(fmt.Sprintf("  cd %s", projectName))
 	cmd.PrintInfo("")
 	cmd.PrintInfo("Backend setup:")
-	cmd.PrintInfo("  cd admin-api-template")
+	cmd.PrintInfo(fmt.Sprintf("  cd %s", backendDir))
 	cmd.PrintInfo("  cp .env.sample .env")
 	cmd.PrintInfo("  # Edit .env with your database credentials")
 	cmd.PrintInfo("  go mod tidy")
 	cmd.PrintInfo("  bui start")
 	cmd.PrintInfo("")
 	cmd.PrintInfo("Frontend setup (in another terminal):")
-	cmd.PrintInfo("  cd admin-template")
+	cmd.PrintInfo(fmt.Sprintf("  cd %s", frontendDir))
 	cmd.PrintInfo("  bun install")
 	cmd.PrintInfo("  bun dev")
 	cmd.PrintInfo("")
