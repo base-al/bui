@@ -16,7 +16,7 @@ A modern, unified CLI tool for Base Stack development. Generate backend modules 
 
 ## Installation
 
-### Option 1: Install Script (Recommended)
+### Install Script (Recommended)
 
 ```bash
 # Interactive installation (choose local or global)
@@ -27,17 +27,7 @@ The script will ask you to choose:
 - **Local install** (`~/.base/bin`) - No sudo required, add `~/.base/bin` to PATH
 - **Global install** (`/usr/local/bin`) - Requires sudo, available system-wide
 
-### Option 2: Go Install
-
-```bash
-# Install specific version
-go install github.com/base-al/bui@v0.0.1
-
-# Install latest version
-go install github.com/base-al/bui@latest
-```
-
-### Option 3: Download Binary
+### Download Binary
 
 Download pre-built binaries from [GitHub Releases](https://github.com/base-al/bui/releases) for your platform:
 - macOS (darwin_amd64, darwin_arm64)

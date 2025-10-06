@@ -59,7 +59,7 @@ if [ "$OS" != "windows" ] && [ -t 0 ]; then
     echo "     • No sudo required"
     echo "     • You'll need to add ~/.base/bin to your PATH"
     echo ""
-    echo "  2) Global install"
+    echo "  2) Global install (sudo)"
     echo "     • Location: /usr/local/bin"
     echo "     • Requires sudo password"
     echo "     • Available system-wide immediately"

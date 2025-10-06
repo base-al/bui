@@ -63,83 +63,37 @@ func runUpgrade(cmd *mamba.Command, args []string) {
 	cmd.PrintInfo(fmt.Sprintf("Installation: %s", exePath))
 	cmd.PrintInfo("")
 
-	// Check if Go is available (for go install method)
-	if _, err := exec.LookPath("go"); err == nil {
-		cmd.PrintInfo("Upgrading via go install...")
-		upgradeCmd := exec.Command("go", "install", "github.com/base-al/bui@latest")
-		upgradeCmd.Stdout = os.Stdout
-		upgradeCmd.Stderr = os.Stderr
-		if err := upgradeCmd.Run(); err != nil {
-			cmd.PrintError("Failed to upgrade via go install")
-			cmd.PrintInfo("")
-			cmd.PrintInfo("Try running the install script instead:")
-			cmd.PrintInfo("  curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
-			os.Exit(1)
-		}
+	// Use install script
+	cmd.PrintInfo("Downloading and running install script...")
+	cmd.PrintInfo("")
 
-		// If current installation is in ~/.base/bin, copy the updated binary there
-		if strings.Contains(exePath, ".base/bin") {
-			cmd.PrintInfo("")
-			cmd.PrintInfo("Copying updated binary to ~/.base/bin...")
-
-			// Get GOBIN or default ~/go/bin
-			gobin := os.Getenv("GOBIN")
-			if gobin == "" {
-				home, _ := os.UserHomeDir()
-				gobin = fmt.Sprintf("%s/go/bin", home)
-			}
-
-			sourcePath := fmt.Sprintf("%s/bui", gobin)
-			if runtime.GOOS == "windows" {
-				sourcePath = fmt.Sprintf("%s/bui.exe", gobin)
-			}
-
-			// Copy the binary
-			copyCmd := exec.Command("cp", sourcePath, exePath)
-			if err := copyCmd.Run(); err != nil {
-				cmd.PrintWarning("Failed to copy binary to ~/.base/bin")
-				cmd.PrintInfo(fmt.Sprintf("Manually copy: cp %s %s", sourcePath, exePath))
-			} else {
-				cmd.PrintSuccess("Binary updated in ~/.base/bin")
-			}
-		}
-
-		cmd.PrintInfo("")
-		cmd.PrintSuccess("Successfully upgraded Bui CLI!")
-		cmd.PrintInfo("Run 'bui version' to check the new version")
+	// Determine the install script command based on OS
+	var installCmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		// Windows: download and run with PowerShell
+		installCmd = exec.Command("powershell", "-Command",
+			"Invoke-WebRequest -Uri https://raw.githubusercontent.com/base-al/bui/main/install.sh -OutFile install.sh; bash install.sh; Remove-Item install.sh")
 	} else {
-		// Use install script
-		cmd.PrintInfo("Downloading and running install script...")
-		cmd.PrintInfo("")
-
-		// Determine the install script command based on OS
-		var installCmd *exec.Cmd
-		if runtime.GOOS == "windows" {
-			// Windows: download and run with PowerShell
-			installCmd = exec.Command("powershell", "-Command",
-				"Invoke-WebRequest -Uri https://raw.githubusercontent.com/base-al/bui/main/install.sh -OutFile install.sh; bash install.sh; Remove-Item install.sh")
-		} else {
-			// Unix: use curl and bash
-			installCmd = exec.Command("bash", "-c",
-				"curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
-		}
-
-		installCmd.Stdout = os.Stdout
-		installCmd.Stderr = os.Stderr
-		installCmd.Stdin = os.Stdin
-
-		if err := installCmd.Run(); err != nil {
-			cmd.PrintError("Failed to run install script")
-			cmd.PrintInfo("")
-			cmd.PrintInfo("Try manually running:")
-			cmd.PrintInfo("  curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
-			os.Exit(1)
-		}
-
-		cmd.PrintInfo("")
-		cmd.PrintSuccess("Successfully upgraded Bui CLI!")
-		cmd.PrintInfo("Run 'bui version' to check the new version")
+		// Unix: use curl and bash
+		installCmd = exec.Command("bash", "-c",
+			"curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
 	}
+
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
+	installCmd.Stdin = os.Stdin
+
+	if err := installCmd.Run(); err != nil {
+		cmd.PrintError("Failed to run install script")
+		cmd.PrintInfo("")
+		cmd.PrintInfo("Try manually running:")
+		cmd.PrintInfo("  curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
+		os.Exit(1)
+	}
+
+	cmd.PrintInfo("")
+	cmd.PrintSuccess("Successfully upgraded Bui CLI!")
+	cmd.PrintInfo("Run 'bui version' to check the new version")
 }
 
 // getLatestVersion fetches the latest release version from GitHub
