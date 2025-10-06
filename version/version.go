@@ -59,13 +59,13 @@ func GetBuildInfo() BuildInfo {
 
 // String returns a string representation of version information
 func (bi BuildInfo) String() string {
-	return fmt.Sprintf("Base CLI %s\nCommit: %s\nBuilt: %s\nGo version: %s",
+	return fmt.Sprintf("Bui CLI %s\nCommit: %s\nBuilt: %s\nGo version: %s",
 		bi.Version, bi.CommitHash, bi.BuildDate, bi.GoVersion)
 }
 
 // CheckLatestVersion checks GitHub for newer releases
 func CheckLatestVersion() (*Release, error) {
-	url := "https://api.github.com/repos/base-go/cmd/releases/latest"
+	url := "https://api.github.com/repos/base-al/bui/releases/latest"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func HasUpdate(current, latest string) bool {
 
 // GetAllReleases gets all releases from GitHub
 func GetAllReleases() ([]Release, error) {
-	url := "https://api.github.com/repos/base-go/cmd/releases"
+	url := "https://api.github.com/repos/base-al/bui/releases"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func CompareVersions(v1, v2 string) int {
 func FormatUpdateMessage(current, latest, releaseURL, releaseNotes string) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("\n📦 Update available! %s → %s\n", current, latest))
-	sb.WriteString("Run: base upgrade\n")
+	sb.WriteString("Run: bui upgrade\n")
 	sb.WriteString(fmt.Sprintf("Release notes: %s\n", releaseURL))
 	if releaseNotes != "" {
 		sb.WriteString(fmt.Sprintf("\nChangelog:\n%s\n", releaseNotes))
