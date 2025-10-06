@@ -72,9 +72,9 @@ fi
 echo "Latest version: $LATEST_RELEASE"
 
 # Download the appropriate binary
-DOWNLOAD_URL="https://github.com/base-al/admin-cli/releases/download/$LATEST_RELEASE/base_${OS}_${ARCH}.tar.gz"
+DOWNLOAD_URL="https://github.com/base-al/admin-cli/releases/download/$LATEST_RELEASE/bui_${OS}_${ARCH}.tar.gz"
 if [ "$OS" = "windows" ]; then
-    DOWNLOAD_URL="https://github.com/base-al/admin-cli/releases/download/$LATEST_RELEASE/base_${OS}_${ARCH}.zip"
+    DOWNLOAD_URL="https://github.com/base-al/admin-cli/releases/download/$LATEST_RELEASE/bui_${OS}_${ARCH}.zip"
 fi
 
 echo "Downloading from: $DOWNLOAD_URL"
@@ -82,8 +82,8 @@ TMP_DIR=$(mktemp -d)
 cd "$TMP_DIR"
 
 if [ "$OS" = "windows" ]; then
-    curl -sL "$DOWNLOAD_URL" -o base.zip
-    unzip base.zip
+    curl -sL "$DOWNLOAD_URL" -o bui.zip
+    unzip bui.zip
 else
     curl -sL "$DOWNLOAD_URL" | tar xz
 fi
@@ -132,12 +132,12 @@ else
 fi
 
 echo ""
-echo "Run 'base --help' to get started"
+echo "Run 'bui --help' to get started"
 
 # Add to PATH for Windows if needed
 if [ "$OS" = "windows" ]; then
     if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-        echo "Please add $BIN_DIR to your PATH to use the 'base' command"
+        echo "Please add $BIN_DIR to your PATH to use the 'bui' command"
         echo "You can do this by running:"
         echo "    setx PATH \"%PATH%;$BIN_DIR\""
     fi
