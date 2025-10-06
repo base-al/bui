@@ -2,8 +2,12 @@
 
 # Bui CLI Installation Script
 # This script installs the bui binary to ~/.base/bin or /usr/local/bin
-# IMPORTANT: This script never deletes the .base directory as it may contain
-# other important scripts and tools. It only manages the bui binary.
+#
+# IMPORTANT SAFETY NOTES:
+# - This script NEVER deletes the .base directory or .base/bin directory
+# - ~/.base/bin/ is shared by all Base Framework CLIs (base, bui, etc.)
+# - This script ONLY manages the 'bui' binary, all other binaries are preserved
+# - Never run commands that remove directories or other binaries
 
 set -e
 
