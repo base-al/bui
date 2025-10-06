@@ -16,16 +16,13 @@ A modern, unified CLI tool for Base Stack development. Generate backend modules 
 
 ## Installation
 
-### Install Script (Recommended)
-
 ```bash
-# Interactive installation (choose local or global)
-curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/base-al/bui/refs/heads/main/install.sh | bash
 ```
 
-The script will ask you to choose:
-- **Local install** (`~/.base/bin`) - No sudo required, add `~/.base/bin` to PATH
-- **Global install** (`/usr/local/bin`) - Requires sudo, available system-wide
+Installation modes:
+- **Non-interactive** (piped): Installs to `~/.base/bin` (requires adding to PATH)
+- **Interactive** (download & run): Choose local or global (`/usr/local/bin` with sudo)
 
 ### Download Binary
 
