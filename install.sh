@@ -110,11 +110,11 @@ fi
 cd - > /dev/null
 rm -rf "$TMP_DIR"
 
-echo "Base CLI has been installed successfully!"
+echo "BUI CLI has been installed successfully!"
 
 # Install Go dependencies
 echo ""
-echo "Installing Base CLI dependencies..."
+echo "Installing BUI CLI dependencies..."
 
 # Check if Go is installed
 if command -v go >/dev/null 2>&1; then
@@ -127,7 +127,7 @@ if command -v go >/dev/null 2>&1; then
     fi
 else
     echo "Warning: Go is not installed or not in PATH."
-    echo "Base CLI dependencies (swag) will be installed automatically when needed."
+    echo "BUI CLI dependencies (swag) will be installed automatically when needed."
     echo "To install Go, visit: https://golang.org/dl/"
 fi
 
