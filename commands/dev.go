@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/base-go/mamba"
@@ -30,18 +31,32 @@ func runDev(cmd *mamba.Command, args []string) {
 	// Check for standalone structure (running from individual project directory)
 	if fileExists("main.go") {
 		backendDir = "."
-	} else if dirExists("admin-api-template") {
-		backendDir = "admin-api-template"
-	} else if dirExists("admin-api") {
-		backendDir = "admin-api"
+	} else {
+		// Look for directories ending with -api (new structure)
+		backendDir = findDirWithSuffix("-api")
+		// Fallback to old structure
+		if backendDir == "" {
+			if dirExists("admin-api-template") {
+				backendDir = "admin-api-template"
+			} else if dirExists("admin-api") {
+				backendDir = "admin-api"
+			}
+		}
 	}
 
 	if fileExists("nuxt.config.ts") {
 		frontendDir = "."
-	} else if dirExists("admin-template") {
-		frontendDir = "admin-template"
-	} else if dirExists("admin") {
-		frontendDir = "admin"
+	} else {
+		// Look for directories ending with -app (new structure)
+		frontendDir = findDirWithSuffix("-app")
+		// Fallback to old structure
+		if frontendDir == "" {
+			if dirExists("admin-template") {
+				frontendDir = "admin-template"
+			} else if dirExists("admin") {
+				frontendDir = "admin"
+			}
+		}
 	}
 
 	if backendDir == "" && frontendDir == "" {
@@ -127,4 +142,22 @@ func fileExists(path string) bool {
 		return false
 	}
 	return !info.IsDir()
+}
+
+// findDirWithSuffix finds the first directory in current directory with the given suffix (case-sensitive)
+func findDirWithSuffix(suffix string) string {
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			dirName := entry.Name()
+			if strings.HasSuffix(dirName, suffix) {
+				return dirName
+			}
+		}
+	}
+	return ""
 }
