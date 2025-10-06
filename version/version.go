@@ -12,7 +12,7 @@ import (
 // Version information
 var (
 	// Version is the current version of Bui CLI
-	Version = "0.0.4"
+	Version = "0.0.1"
 
 	// CommitHash is the git commit hash at build time
 	CommitHash = "unknown"
