@@ -76,6 +76,34 @@ func runUpgrade(cmd *mamba.Command, args []string) {
 			cmd.PrintInfo("  curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
 			os.Exit(1)
 		}
+
+		// If current installation is in ~/.base/bin, copy the updated binary there
+		if strings.Contains(exePath, ".base/bin") {
+			cmd.PrintInfo("")
+			cmd.PrintInfo("Copying updated binary to ~/.base/bin...")
+
+			// Get GOBIN or default ~/go/bin
+			gobin := os.Getenv("GOBIN")
+			if gobin == "" {
+				home, _ := os.UserHomeDir()
+				gobin = fmt.Sprintf("%s/go/bin", home)
+			}
+
+			sourcePath := fmt.Sprintf("%s/bui", gobin)
+			if runtime.GOOS == "windows" {
+				sourcePath = fmt.Sprintf("%s/bui.exe", gobin)
+			}
+
+			// Copy the binary
+			copyCmd := exec.Command("cp", sourcePath, exePath)
+			if err := copyCmd.Run(); err != nil {
+				cmd.PrintWarning("Failed to copy binary to ~/.base/bin")
+				cmd.PrintInfo(fmt.Sprintf("Manually copy: cp %s %s", sourcePath, exePath))
+			} else {
+				cmd.PrintSuccess("Binary updated in ~/.base/bin")
+			}
+		}
+
 		cmd.PrintInfo("")
 		cmd.PrintSuccess("Successfully upgraded Bui CLI!")
 		cmd.PrintInfo("Run 'bui version' to check the new version")
