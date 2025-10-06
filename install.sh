@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Bui CLI Installation Script
+# This script installs the bui binary to ~/.base/bin or /usr/local/bin
+# IMPORTANT: This script never deletes the .base directory as it may contain
+# other important scripts and tools. It only manages the bui binary.
+
 set -e
 
 # Detect OS and architecture
@@ -82,13 +87,34 @@ else
     BIN_DIR="$HOME/.base/bin"
 fi
 
-# Create installation directories
+# Create installation directories (never delete existing directories)
 if [ "$GLOBAL_INSTALL" = true ]; then
     sudo mkdir -p "$INSTALL_DIR"
     sudo mkdir -p "$BIN_DIR"
 else
+    # Create directories if they don't exist, but never remove existing ones
     mkdir -p "$INSTALL_DIR"
     mkdir -p "$BIN_DIR"
+fi
+
+# Check if bui is already installed (only if running interactively)
+if [ -f "$BIN_DIR/$BINARY_NAME" ] && [ -t 0 ]; then
+    EXISTING_VERSION="unknown"
+    if [ "$GLOBAL_INSTALL" = false ]; then
+        EXISTING_VERSION=$("$BIN_DIR/$BINARY_NAME" version 2>/dev/null | grep -o 'v[0-9]*\.[0-9]*\.[0-9]*' || echo "unknown")
+    fi
+    echo ""
+    echo "⚠️  Bui CLI is already installed"
+    if [ "$EXISTING_VERSION" != "unknown" ]; then
+        echo "   Current version: $EXISTING_VERSION"
+    fi
+    echo ""
+    read -p "Do you want to reinstall/update? [y/N]: " REINSTALL
+    if [[ ! $REINSTALL =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+    echo ""
 fi
 
 echo ""
