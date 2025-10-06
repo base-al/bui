@@ -44,38 +44,59 @@ else
     BINARY_NAME="bui"
 fi
 
-# Interactive installation prompt (only for non-Windows and TTY)
+# Interactive installation prompt
 GLOBAL_INSTALL=false
-if [ "$OS" != "windows" ] && [ -t 0 ]; then
-    echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║              Bui CLI Installation                          ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
-    echo ""
-    echo "Choose installation type:"
-    echo ""
-    echo "  1) Local install (Recommended)"
-    echo "     • Location: ~/.base/bin"
-    echo "     • No sudo required"
-    echo "     • You'll need to add ~/.base/bin to your PATH"
-    echo ""
-    echo "  2) Global install (sudo)"
-    echo "     • Location: /usr/local/bin"
-    echo "     • Requires sudo password"
-    echo "     • Available system-wide immediately"
-    echo ""
-    read -p "Enter your choice [1/2] (default: 1): " INSTALL_CHOICE
-
-    if [ "$INSTALL_CHOICE" = "2" ]; then
-        GLOBAL_INSTALL=true
+if [ "$OS" != "windows" ]; then
+    # Check if running in interactive mode (TTY)
+    if [ -t 0 ]; then
+        # Interactive mode - show menu and ask for choice
         echo ""
-        echo "Global installation requires sudo access..."
-        if ! sudo -v; then
-            echo "❌ Error: sudo access required for global installation"
-            echo "Please run the script again and choose option 1 for local installation."
-            exit 1
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              Bui CLI Installation                          ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "Choose installation type:"
+        echo ""
+        echo "  1) Local install (Recommended)"
+        echo "     • Location: ~/.base/bin"
+        echo "     • No sudo required"
+        echo "     • You'll need to add ~/.base/bin to your PATH"
+        echo ""
+        echo "  2) Global install to /usr/local/bin/ (sudo)"
+        echo "     • Location: /usr/local/bin"
+        echo "     • Requires sudo password"
+        echo "     • Available system-wide immediately"
+        echo ""
+        read -p "Enter your choice [1/2] (default: 1): " INSTALL_CHOICE
+
+        if [ "$INSTALL_CHOICE" = "2" ]; then
+            GLOBAL_INSTALL=true
+            echo ""
+            echo "⚠️  Global installation requires sudo access..."
+            echo "You will be prompted for your password."
+            echo ""
+            if ! sudo -v; then
+                echo "❌ Error: sudo access required for global installation"
+                echo "Please run the script again and choose option 1 for local installation."
+                exit 1
+            fi
+            echo "✓ Sudo access granted"
         fi
-        echo "✓ Sudo access granted"
+    else
+        # Non-interactive mode (piped from curl) - show info and default to local
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              Bui CLI Installation                          ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "📍 Installation mode: Local (non-interactive)"
+        echo "   Location: ~/.base/bin"
+        echo ""
+        echo "💡 To install globally with sudo:"
+        echo "   curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh -o install.sh"
+        echo "   bash install.sh"
+        echo "   rm install.sh"
+        echo ""
     fi
 fi
 
