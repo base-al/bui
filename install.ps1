@@ -84,11 +84,11 @@ try {
     }
     else {
         Write-Host "Warning: Go is not installed or not in PATH." -ForegroundColor Yellow
-        Write-Host "Base CLI dependencies (go-swagger) will be installed automatically when needed."
+        Write-Host "Bui CLI dependencies (go-swagger) will be installed automatically when needed."
         Write-Host "To install Go, visit: https://golang.org/dl/"
     }
     
-    Write-Host "`nPlease restart your terminal to use the 'base' command"
+    Write-Host "`nPlease restart your terminal to use the 'bui' command"
 }
 catch {
     Write-Error "Installation failed: $_"
@@ -101,4 +101,4 @@ finally {
     }
 }
 
-Write-Host "`nTo get started, run: base --help"
+Write-Host "`nTo get started, run: bui --help"
