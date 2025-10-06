@@ -30,22 +30,18 @@ fi
 
 # Set installation directories based on OS
 if [ "$OS" = "windows" ]; then
-    INSTALL_DIR="$USERPROFILE/.bui"
+    INSTALL_DIR="$USERPROFILE/.base"
     BIN_DIR="$USERPROFILE/bin"
     BINARY_NAME="bui.exe"
 else
-    INSTALL_DIR="$HOME/.bui"
-    BIN_DIR="/usr/local/bin"
+    INSTALL_DIR="$HOME/.base"
+    BIN_DIR="$HOME/.base/bin"
     BINARY_NAME="bui"
 fi
 
 # Create installation directories
 mkdir -p "$INSTALL_DIR"
-mkdir -p "$BIN_DIR" 2>/dev/null || {
-    echo "Error: Unable to create $BIN_DIR directory. Please run with sudo:"
-    echo "curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | sudo bash"
-    exit 1
-}
+mkdir -p "$BIN_DIR"
 
 echo "Installing Bui CLI..."
 echo "OS: $OS"
@@ -89,22 +85,8 @@ else
 fi
 
 # Install the binary
-mv "$BINARY_NAME" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/$BINARY_NAME"
-
-# Create symlink
-if [ "$OS" = "windows" ]; then
-    # On Windows, copy to bin directory
-    cp "$INSTALL_DIR/$BINARY_NAME" "$BIN_DIR/"
-else
-    # On Unix systems, create symlink with sudo
-    echo "Creating symlink in $BIN_DIR (requires sudo)..."
-    if ! sudo ln -sf "$INSTALL_DIR/$BINARY_NAME" "$BIN_DIR/$BINARY_NAME"; then
-        echo "Error: Failed to create symlink. Please run the install script with sudo:"
-        echo "curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | sudo bash"
-        exit 1
-    fi
-fi
+mv "$BINARY_NAME" "$BIN_DIR/"
+chmod +x "$BIN_DIR/$BINARY_NAME"
 
 # Cleanup
 cd - > /dev/null
@@ -132,14 +114,38 @@ else
 fi
 
 echo ""
-echo "Run 'bui --help' to get started"
-echo "Create a new project with: bui new my-project"
+echo "Bui CLI is installed in: $BIN_DIR"
 
-# Add to PATH for Windows if needed
-if [ "$OS" = "windows" ]; then
-    if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-        echo "Please add $BIN_DIR to your PATH to use the 'bui' command"
-        echo "You can do this by running:"
+# Check if ~/.base/bin is in PATH
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo ""
+    echo "⚠️  Please add ~/.base/bin to your PATH:"
+    echo ""
+    if [ "$OS" = "darwin" ] || [ "$OS" = "linux" ]; then
+        # Detect shell
+        if [ -n "$ZSH_VERSION" ] || [ -f "$HOME/.zshrc" ]; then
+            echo "Add this line to your ~/.zshrc:"
+            echo '    export PATH="$HOME/.base/bin:$PATH"'
+        elif [ -f "$HOME/.bashrc" ]; then
+            echo "Add this line to your ~/.bashrc:"
+            echo '    export PATH="$HOME/.base/bin:$PATH"'
+        else
+            echo "Add this line to your shell configuration file:"
+            echo '    export PATH="$HOME/.base/bin:$PATH"'
+        fi
+        echo ""
+        echo "Then reload your shell:"
+        echo "    source ~/.zshrc  # or ~/.bashrc"
+    elif [ "$OS" = "windows" ]; then
+        echo "Run this command:"
         echo "    setx PATH \"%PATH%;$BIN_DIR\""
     fi
+    echo ""
+else
+    echo ""
+    echo "✓ ~/.base/bin is already in your PATH"
+    echo ""
 fi
+
+echo "Run 'bui --help' to get started"
+echo "Create a new project with: bui new my-project"
