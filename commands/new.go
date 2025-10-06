@@ -187,7 +187,8 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 		}
 
 		contentStr := string(content)
-		// Replace the name field (assumes format: "name": "admin-template")
+		// Replace the name field - handle both "nuxt-app" and "admin-template"
+		contentStr = strings.ReplaceAll(contentStr, `"name": "nuxt-app"`, fmt.Sprintf(`"name": "%s"`, projectName))
 		contentStr = strings.ReplaceAll(contentStr, `"name": "admin-template"`, fmt.Sprintf(`"name": "%s"`, projectName))
 
 		if err := os.WriteFile(packageJsonPath, []byte(contentStr), 0644); err != nil {
