@@ -1,0 +1,113 @@
+<template>
+  <div class="space-y-4">
+    <!-- Table -->
+    <UTable
+      :data="{{.VarPlural}}"
+      :columns="columns"
+      :loading="loading"
+      @select="onRowClick"
+    />
+
+    <!-- Pagination -->
+    <div v-if="pagination.totalPages > 1" class="flex justify-center">
+      <UPagination
+        v-model="currentPage"
+        :total="pagination.total"
+        :page-count="pagination.limit"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, h, resolveComponent } from 'vue'
+import type { {{.Model}} } from '../types/{{.ModelSnake}}'
+import type { TableColumn } from '@nuxt/ui'
+
+const UButton = resolveComponent('UButton')
+const UDropdownMenu = resolveComponent('UDropdownMenu')
+
+const props = defineProps<{
+  {{.VarPlural}}: {{.Model}}[]
+  loading: boolean
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}>()
+
+const emit = defineEmits<{
+  edit: [item: {{.Model}}]
+  delete: [item: {{.Model}}]
+  view: [item: {{.Model}}]
+  pageChange: [page: number]
+}>()
+
+const currentPage = computed({
+  get: () => props.pagination.page,
+  set: (value) => emit('pageChange', value),
+})
+
+const columns: TableColumn<{{.Model}}>[] = [
+  {
+    accessorKey: 'id',
+    header: 'ID',
+  },
+{{range .Fields}}{{if .ShowInTable}}  {
+    accessorKey: '{{.JSONName}}',
+    header: '{{.Label}}',
+  },
+{{end}}{{end}}  {
+    accessorKey: 'created_at',
+    header: 'Created',
+    cell: ({ row }) => {
+      const date = new Date(row.getValue('created_at') as string)
+      return h('span', { class: 'text-sm text-gray-600 dark:text-gray-400' },
+        date.toLocaleDateString()
+      )
+    }
+  },
+  {
+    accessorKey: 'actions',
+    header: '',
+    cell: ({ row }) => {
+      return h(UDropdownMenu, { items: getActionItems(row.original) }, () =>
+        h(UButton, {
+          color: 'neutral',
+          variant: 'ghost',
+          icon: 'i-lucide-more-horizontal'
+        })
+      )
+    }
+  },
+]
+
+const getActionItems = (item: {{.Model}}) => [
+  [
+    {
+      label: 'View',
+      icon: 'i-lucide-eye',
+      click: () => emit('view', item),
+    },
+    {
+      label: 'Edit',
+      icon: 'i-lucide-pencil',
+      click: () => emit('edit', item),
+    },
+  ],
+  [
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash',
+      click: () => emit('delete', item),
+      color: 'error',
+    },
+  ],
+]
+
+const onRowClick = (row: {{.Model}}) => {
+  emit('view', row)
+}
+</script>

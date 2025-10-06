@@ -1,0 +1,443 @@
+package models
+
+import (
+    "fmt"
+    "time"
+    "gorm.io/gorm"
+    {{- if .HasImageField }}
+    "base/core/storage"
+    {{- end }}
+    {{- if or (hasField .Fields "time.Time") (hasField .Fields "types.DateTime") }}
+    "base/core/types"
+    {{- end }}
+    {{- if hasField .Fields "translation.Field" }}
+    "base/core/translation"
+    {{- end }}
+)
+
+// {{.Model}} represents a {{.ModelLower}} entity
+type {{.Model}} struct {
+    Id        uint           `json:"id" gorm:"primarykey"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+    {{- range .Fields}}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (ne .Type "translation.Field") }}
+    {{.Name}} {{if eq .Type "text"}}string{{else if eq .Type "email"}}string{{else}}{{.Type}}{{end}} `json:"{{.JSONName}}"{{if .GORMTag}} gorm:"{{.GORMTag}}"{{end}}`
+    {{- end }}
+    {{- end}}
+    {{- /* Add foreign key IDs for belongsTo relationships */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{.Name}} uint `json:"{{.JSONName}},omitempty"`
+    {{- else }}
+    {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
+    {{- end }}
+    {{- end}}
+    {{- end}}
+    {{- /* Add relationship objects */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    {{- if hasSuffix .Name "Id" }}
+    {{$objectName}} *{{.RelatedModel}} `json:"{{ToSnakeCase $objectName}},omitempty" gorm:"foreignKey:{{.Name}}"`
+    {{- else }}
+    {{$objectName}} *{{.RelatedModel}} `json:"{{ToSnakeCase $objectName}},omitempty" gorm:"foreignKey:{{.Name}}Id"`
+    {{- end }}
+    {{- else if eq .Relationship "has_many"}}
+    {{.Name}} []*{{.RelatedModel}} `json:"{{.JSONName}},omitempty"`
+    {{- else if eq .Relationship "has_one" }}
+    {{.Name}} *{{.RelatedModel}} `json:"{{.JSONName}},omitempty"`
+    {{- else if eq .Relationship "many_to_many" }}
+    {{.Name}} []*{{.RelatedModel}} `json:"{{.JSONName}}" gorm:"many2many:{{$.ModelSnake}}_{{ToSnakeCase (ToPlural .RelatedModel)}}"`
+    {{- end }}
+    {{- end}}
+    {{- /* Add translation fields and file attachments */}}
+    {{- range .Fields}}
+    {{- if eq .Type "translation.Field" }}
+    {{.Name}} translation.Field `json:"{{.JSONName}}" gorm:"foreignKey:ModelId;references:Id"`
+    {{- else if eq .Type "*storage.Attachment" }}
+    {{.Name}} *storage.Attachment `json:"{{.JSONName}},omitempty" gorm:"foreignKey:ModelId;references:Id"`
+    {{- end }}
+    {{- end}}
+}
+
+{{- /* Generate join table structs for many-to-many relationships */}}
+{{- range .Fields}}
+{{- if eq .Relationship "many_to_many" }}
+
+// {{$.Model}}{{.RelatedModel}} represents the join table between {{$.Model}} and {{.RelatedModel}}
+type {{$.Model}}{{.RelatedModel}} struct {
+    {{$.Model}}Id uint `json:"{{$.ModelSnake}}_id" gorm:"primaryKey"`
+    {{.RelatedModel}}Id uint `json:"{{ToSnakeCase .RelatedModel}}_id" gorm:"primaryKey"`
+}
+
+// TableName returns the table name for the join table
+func (m *{{$.Model}}{{.RelatedModel}}) TableName() string {
+    return "{{$.ModelSnake}}_{{ToSnakeCase (ToPlural .RelatedModel)}}"
+}
+{{- end}}
+{{- end}}
+
+// TableName returns the table name for the {{.Model}} model
+func (m *{{.Model}}) TableName() string {
+    return "{{.TableName}}"
+}
+
+// GetId returns the Id of the model
+func (m *{{.Model}}) GetId() uint {
+    return m.Id
+}
+
+// GetModelName returns the model name
+func (m *{{.Model}}) GetModelName() string {
+    return "{{.ModelSnake}}"
+}
+
+// Create{{.Model}}Request represents the request payload for creating a {{.Model}}
+type Create{{.Model}}Request struct {
+    {{- range .Fields}}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- $fieldType := .Type }}
+    {{- if eq .Type "translation.Field" }}
+    {{- $fieldType = "string" }}  // Convert translation fields to string in requests
+    {{- else if eq .Type "text" }}
+    {{- $fieldType = "string" }}
+    {{- else if eq .Type "email" }}
+    {{- $fieldType = "string" }}
+    {{- else if eq .Type "types.DateTime" }}
+    {{- $fieldType = "types.DateTime" }}
+    {{- end }}
+    {{- if .IsRequired }}
+    {{- if eq .Type "types.DateTime" }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}}" swaggertype:"string" binding:"required"`
+    {{- else }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}}" binding:"required"`
+    {{- end }}
+    {{- else }}
+    {{- if eq .Type "types.DateTime" }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}}" swaggertype:"string"`
+    {{- else }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end }}
+    {{- /* Skip many-to-many fields in CreateRequest - they need PostId which doesn't exist yet */}}
+    {{- else if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{.Name}} uint `json:"{{.JSONName}},omitempty"`
+    {{- else }}
+    {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
+    {{- end }}
+    {{- end }}
+    {{- end}}
+}
+
+// Update{{.Model}}Request represents the request payload for updating a {{.Model}}
+type Update{{.Model}}Request struct {
+    {{- range .Fields}}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- $fieldType := .Type }}
+    {{- if eq .Type "translation.Field" }}
+    {{- $fieldType = "string" }}  // Convert translation fields to string in requests
+    {{- else if eq .Type "text" }}
+    {{- $fieldType = "string" }}
+    {{- else if eq .Type "email" }}
+    {{- $fieldType = "string" }}
+    {{- else if eq .Type "types.DateTime" }}
+    {{- $fieldType = "types.DateTime" }}
+    {{- end }}
+    {{- if eq .Type "bool" }}
+    {{.Name}} *{{.Type}} `json:"{{.JSONName}},omitempty"`
+    {{- else if eq .Type "types.DateTime" }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}},omitempty" swaggertype:"string"`
+    {{- else }}
+    {{.Name}} {{$fieldType}} `json:"{{.JSONName}},omitempty"`
+    {{- end }}
+    {{- else if eq .Relationship "many_to_many" }}
+    {{- if .RelatedModel }}
+    {{.Name}}Ids []uint `json:"{{.JSONName}}_ids,omitempty"`
+    {{- else }}
+    {{.Name}}Ids []uint `json:"{{.JSONName}}_ids,omitempty"`
+    {{- end }}
+    {{- else if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{.Name}} uint `json:"{{.JSONName}},omitempty"`
+    {{- else }}
+    {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
+    {{- end }}
+    {{- end}}
+    {{- end}}
+    {{- /* File fields are handled via separate upload endpoints, not in update request */}}
+}
+// {{.Model}}Response represents the API response for {{.Model}}
+type {{.Model}}Response struct {
+    Id        uint           `json:"id"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `json:"deleted_at"`
+    {{- range .Fields}}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{.Name}} {{.Type}} `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end}}
+    {{- /* Include toMany relationships in response */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "many_to_many" }}
+    {{- if .RelatedModel }}
+    {{.Name}} []*{{.RelatedModel}} `json:"{{.JSONName}}"`
+    {{- else }}
+    {{.Name}} []string `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end }}
+    {{- end}}
+    {{- /* Include relationship objects in response */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    {{$objectName}} *{{.RelatedModel}}ModelResponse `json:"{{ToSnakeCase $objectName}},omitempty"`
+    {{- else }}
+    {{.RelatedModel}} *{{.RelatedModel}}ModelResponse `json:"{{ToSnakeCase .RelatedModel}},omitempty"`
+    {{- end }}
+    {{- else if or (eq .Relationship "has_many") (eq .Relationship "has_one") }}
+    {{- if eq .Type "*storage.Attachment" }}
+    {{.Name}} *storage.Attachment `json:"{{.JSONName}},omitempty"`
+    {{- else }}
+    {{.Name}} {{.Type}} `json:"{{.JSONName}},omitempty"`
+    {{- end }}
+    {{- end}}
+    {{- end}}
+    {{- /* Include file attachments in response */}}
+    {{- range .Fields}}
+    {{- if eq .Type "*storage.Attachment" }}
+    {{.Name}} *storage.Attachment `json:"{{.JSONName}},omitempty"`
+    {{- end }}
+    {{- end}}
+}
+
+// {{.Model}}ModelResponse represents a simplified response when this model is part of other entities
+type {{.Model}}ModelResponse struct {
+    Id   uint   `json:"id"`
+    {{- $nameField := "" }}
+    {{- $titleField := "" }}
+    {{- $nameFieldType := "" }}
+    {{- $titleFieldType := "" }}
+    {{- range .Fields }}
+    {{- if not .IsRelation }}
+    {{- if or (eq (toLower .Name) "name") (eq (toLower .Name) "title") }}
+    {{- if eq (toLower .Name) "name" }}{{ $nameField = .Name }}{{ $nameFieldType = .Type }}{{end}}
+    {{- if eq (toLower .Name) "title" }}{{ $titleField = .Name }}{{ $titleFieldType = .Type }}{{end}}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if $nameField }}
+    Name {{$nameFieldType}} `json:"name"`
+    {{- else if $titleField }}
+    Title {{$titleFieldType}} `json:"title"`
+    {{- else }}
+    Name string `json:"name"` // Display name
+    {{- end }}
+}
+
+// {{.Model}}SelectOption represents a simplified response for select boxes and dropdowns
+type {{.Model}}SelectOption struct {
+    Id   uint   `json:"id"`
+    Name string `json:"name"` {{- if $nameField }}// From {{$nameField}} field{{- else if $titleField }}// From {{$titleField}} field{{- else }}// Display name{{- end }}
+}
+
+// {{.Model}}ListResponse represents the response for list operations (optimized for performance)
+type {{.Model}}ListResponse struct {
+    Id        uint           `json:"id"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `json:"deleted_at"`
+    {{- range .Fields}}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{.Name}} {{.Type}} `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end}}
+    {{- /* Include toMany relationships in list response */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "many_to_many" }}
+    {{- if .RelatedModel }}
+    {{.Name}} []*{{.RelatedModel}} `json:"{{.JSONName}}"`
+    {{- else }}
+    {{.Name}} []string `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end }}
+    {{- end}}
+    {{- /* Include file attachments in list response */}}
+    {{- range .Fields}}
+    {{- if eq .Type "*storage.Attachment" }}
+    {{.Name}} *storage.Attachment `json:"{{.JSONName}},omitempty"`
+    {{- end }}
+    {{- end}}
+    {{- /* Foreign key IDs are included as regular fields above when they exist */}}
+}
+
+
+// ToResponse converts the model to an API response
+func (m *{{.Model}}) ToResponse() *{{.Model}}Response {
+    if m == nil {
+        return nil
+    }
+    response := &{{.Model}}Response{
+        Id:        m.Id,
+        CreatedAt: m.CreatedAt,
+        UpdatedAt: m.UpdatedAt,
+        DeletedAt: m.DeletedAt,
+        {{- range .Fields}}
+        {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+        {{.Name}}: m.{{.Name}},
+        {{- end }}
+        {{- end}}
+    }
+    
+    {{- /* Convert relationship objects to response types */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    if m.{{.Name}} != 0 {
+        response.{{$objectName}} = m.{{$objectName}}.ToModelResponse()
+    }
+    {{- else }}
+    if m.{{.Name}}Id != 0 {
+        response.{{.RelatedModel}} = m.{{.Name}}.ToModelResponse()
+    }
+    {{- end }}
+    {{- end}}
+    {{- end}}
+    
+    {{- /* Convert file attachments to response types */}}
+    {{- range .Fields}}
+    {{- if eq .Type "*storage.Attachment" }}
+    if m.{{.Name}} != nil {
+        response.{{.Name}} = m.{{.Name}}
+    }
+    {{- end }}
+    {{- end}}
+    
+    return response
+}
+
+// ToModelResponse converts the model to a simplified response for when it's part of other entities
+func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
+    if m == nil {
+        return nil
+    }
+    {{- $nameField := "" }}
+    {{- $titleField := "" }}
+    {{- $nameFieldType := "" }}
+    {{- $titleFieldType := "" }}
+    {{- range .Fields }}
+    {{- if not .IsRelation }}
+    {{- if or (eq (toLower .Name) "name") (eq (toLower .Name) "title") }}
+    {{- if eq (toLower .Name) "name" }}{{ $nameField = .Name }}{{ $nameFieldType = .Type }}{{end}}
+    {{- if eq (toLower .Name) "title" }}{{ $titleField = .Name }}{{ $titleFieldType = .Type }}{{end}}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    
+    {{- if $nameField }}
+    return &{{.Model}}ModelResponse{
+        Id:   m.Id,
+        Name: m.{{$nameField}},
+    }
+    {{- else if $titleField }}
+    return &{{.Model}}ModelResponse{
+        Id:    m.Id,
+        Title: m.{{$titleField}},
+    }
+    {{- else }}
+    return &{{.Model}}ModelResponse{
+        Id:   m.Id,
+        Name: fmt.Sprintf("{{.Model}} #%d", m.Id), // Fallback to ID-based display
+    }
+    {{- end }}
+}
+
+// ToSelectOption converts the model to a select option for dropdowns
+func (m *{{.Model}}) ToSelectOption() *{{.Model}}SelectOption {
+    if m == nil {
+        return nil
+    }
+    {{- $nameField := "" }}
+    {{- $titleField := "" }}
+    {{- $nameFieldType := "" }}
+    {{- $titleFieldType := "" }}
+    {{- $firstStringField := "" }}
+    {{- range .Fields }}
+    {{- if not .IsRelation }}
+    {{- if or (eq .Type "string") (eq .Type "translation.Field") }}
+    {{- if eq $firstStringField "" }}{{ $firstStringField = .Name }}{{end}}
+    {{- if eq (toLower .Name) "name" }}{{ $nameField = .Name }}{{ $nameFieldType = .Type }}{{end}}
+    {{- if eq (toLower .Name) "title" }}{{ $titleField = .Name }}{{ $titleFieldType = .Type }}{{end}}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    
+    {{- if $nameField }}
+    {{- if eq $nameFieldType "translation.Field" }}
+    displayName := m.{{$nameField}}.String() // Convert translation field to string
+    {{- else }}
+    displayName := m.{{$nameField}}
+    {{- end }}
+    {{- else if $titleField }}
+    {{- if eq $titleFieldType "translation.Field" }}
+    displayName := m.{{$titleField}}.String() // Convert translation field to string
+    {{- else }}
+    displayName := m.{{$titleField}}
+    {{- end }}
+    {{- else if $firstStringField }}
+    displayName := m.{{$firstStringField}} // Using first string field as display name
+    {{- else }}
+    displayName := fmt.Sprintf("{{.Model}} #%d", m.Id) // Fallback to ID-based display
+    {{- end }}
+    
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: displayName,
+    }
+}
+
+// ToListResponse converts the model to a list response (without preloaded relationships for fast listing)
+func (m *{{.Model}}) ToListResponse() *{{.Model}}ListResponse {
+    if m == nil {
+        return nil
+    }
+    return &{{.Model}}ListResponse{
+        Id:        m.Id,
+        CreatedAt: m.CreatedAt,
+        UpdatedAt: m.UpdatedAt,
+        DeletedAt: m.DeletedAt,
+        {{- range .Fields}}
+        {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+        {{.Name}}: m.{{.Name}},
+        {{- end }}
+        {{- end}}
+    }
+}
+
+// Preload preloads all the model's relationships
+func (m *{{.Model}}) Preload(db *gorm.DB) *gorm.DB {
+    query := db
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if hasSuffix .Name "Id" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    query = query.Preload("{{$objectName}}")
+    {{- else }}
+    query = query.Preload("{{.Name}}")
+    {{- end }}
+    {{- end}}
+    {{- end}}
+    {{- /* Storage attachments are handled separately by ActiveStorage, don't preload them */}}
+    {{- /* range .Fields}}
+    {{- if or (eq .Type "file") (eq .Type "image") (eq .Type "*storage.Attachment")}}
+    query = query.Preload("{{.Name}}")
+    {{- end }}
+    {{- end */}}
+    return query
+}

@@ -1,0 +1,137 @@
+<template>
+  <UModal v-model:open="isOpen" :ui="{ content: 'max-w-4xl' }">
+    <template #header>
+      {{`{{ isEdit ? 'Edit `}}{{.Model}}{{`' : 'Create `}}{{.Model}}{{`' }}`}}
+    </template>
+    <template #body>
+    <form @submit.prevent="handleSubmit" class="space-y-6">
+      <!-- Basic Information -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Basic Information</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+{{range .Fields}}{{if .ShowInForm}}{{if eq .FormType "text"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
+            <UInput
+              v-model="form.{{.JSONName}}"
+              placeholder="Enter {{.LabelLower}}"
+            />
+          </UFormField>
+{{else if eq .FormType "textarea"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
+            <UTextarea
+              v-model="form.{{.JSONName}}"
+              placeholder="Enter {{.LabelLower}}"
+              :rows="{{.FormRows}}"
+            />
+          </UFormField>
+{{else if eq .FormType "select"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
+            <USelect
+              v-model="form.{{.JSONName}}"
+              :items="{{.JSONName}}Options"
+              placeholder="Select {{.LabelLower}}"
+            />
+          </UFormField>
+{{else if eq .FormType "checkbox"}}          <UFormField>
+            <UCheckbox
+              v-model="form.{{.JSONName}}"
+              label="{{.Label}}"
+            />
+          </UFormField>
+{{else if eq .FormType "number"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
+            <UInput
+              v-model="form.{{.JSONName}}"
+              type="number"
+              placeholder="Enter {{.LabelLower}}"
+            />
+          </UFormField>
+{{else if eq .FormType "datetime"}}          <UFormField label="{{.Label}}">
+            <UInput
+              v-model="form.{{.JSONName}}"
+              type="datetime-local"
+            />
+          </UFormField>
+{{else}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
+            <UInput
+              v-model="form.{{.JSONName}}"
+              placeholder="Enter {{.LabelLower}}"
+            />
+          </UFormField>
+{{end}}
+{{end}}{{end}}        </div>
+      </div>
+
+    </form>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          @click="closeModal"
+        >
+          Cancel
+        </UButton>
+        <UButton
+          type="submit"
+          :loading="props.loading"
+          @click="handleSubmit"
+        >
+          {{`{{ isEdit ? 'Update' : 'Create' }}`}}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import type { Create{{.Model}}Input, Update{{.Model}}Input, {{.Model}} } from '../types/{{.ModelSnake}}'
+
+const props = defineProps<{
+  modelValue: boolean
+  item?: {{.Model}}
+  loading?: boolean
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [value: boolean]
+  submit: [data: Create{{.Model}}Input | Update{{.Model}}Input]
+}>()
+
+const isOpen = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
+})
+
+const isEdit = computed(() => !!props.item)
+
+const form = ref<Create{{.Model}}Input>({
+{{range .Fields}}{{if .ShowInForm}}  {{.JSONName}}: {{.DefaultValue}},
+{{end}}{{end}}})
+
+const handleSubmit = () => {
+  emit('submit', form.value)
+}
+
+const closeModal = () => {
+  isOpen.value = false
+  resetForm()
+}
+
+const resetForm = () => {
+  form.value = {
+{{range .Fields}}{{if .ShowInForm}}    {{.JSONName}}: {{.DefaultValue}},
+{{end}}{{end}}  }
+}
+
+// Watch for item prop changes
+watch(() => props.item, (item) => {
+  if (item) {
+    form.value = {
+{{range .Fields}}{{if .ShowInForm}}      {{.JSONName}}: item.{{.JSONName}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
+{{end}}{{end}}    }
+  } else {
+    resetForm()
+  }
+}, { immediate: true })
+</script>

@@ -1,0 +1,33 @@
+// {{.Model}} Types
+
+export interface {{.Model}} {
+  // Primary Key
+  id: number
+{{range .Fields}}{{if not .IsRelation}}
+  // {{.Name}} field
+  {{.JSONName}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+{{end}}{{end}}
+  // Timestamps
+  created_at: string
+  updated_at: string
+  deleted_at?: string | null
+}
+
+// Create/Update Input Types
+export interface Create{{.Model}}Input {
+{{range .Fields}}{{if not .IsRelation}}  {{.JSONName}}{{if not .IsRequired}}?{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+{{end}}{{end}}}
+
+export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}
+
+// Filter Input Type
+export interface {{.Model}}FilterInput {
+  search?: string
+{{range .Fields}}{{if .IsFilterable}}  {{.JSONName}}?: {{.TypeScriptType}}
+{{end}}{{end}}}
+
+// Sort Input Type
+export interface {{.Model}}SortInput {
+  field: 'created_at' | 'updated_at'{{range .Fields}}{{if .IsSortable}} | '{{.JSONName}}'{{end}}{{end}}
+  order: 'asc' | 'desc'
+}

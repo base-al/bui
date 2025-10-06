@@ -1,0 +1,40 @@
+/**
+ * {{.Model}} Module Configuration
+ *
+ * Auto-generated module configuration for the {{.Model}} module.
+ */
+
+export const {{.VarPlural}}Module = {
+  name: '{{.PluralSnake}}',
+  displayName: '{{.Plural}}',
+  description: '{{.Model}} management module',
+  icon: 'i-lucide-box',
+
+  // Routes configuration
+  routes: {
+    list: '/app/{{.PluralKebab}}',
+    create: '/app/{{.PluralKebab}}/create',
+    view: '/app/{{.PluralKebab}}/:id',
+    edit: '/app/{{.PluralKebab}}/:id/edit',
+  },
+
+  // Permissions required
+  permissions: {
+    view: '{{.ModelSnake}}:read',
+    create: '{{.ModelSnake}}:create',
+    update: '{{.ModelSnake}}:update',
+    delete: '{{.ModelSnake}}:delete',
+    list: '{{.ModelSnake}}:list',
+  },
+
+  // Navigation menu item
+  navigation: {
+    label: '{{.Plural}}',
+    icon: 'i-lucide-box',
+    to: '/app/{{.PluralKebab}}',
+    permission: '{{.ModelSnake}}:list',
+    order: 100,
+  },
+}
+
+export default {{.VarPlural}}Module
