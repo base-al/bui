@@ -376,7 +376,7 @@ func printSuccessMessage(cmd *mamba.Command, projectName string) {
 	cmd.PrintInfo("Generate your first module:")
 	cmd.PrintInfo("  bui g product name:string price:float")
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Happy coding! 🚀")
+	cmd.PrintInfo("Happy coding!")
 	cmd.PrintInfo("")
 }
 
