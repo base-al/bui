@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/base-go/bui/version"
+	"github.com/base-al/bui/version"
 	"github.com/base-go/mamba"
 )
 

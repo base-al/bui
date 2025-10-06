@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/base-go/bui/commands/backend"
-	"github.com/base-go/bui/commands/frontend"
+	"github.com/base-al/bui/commands/backend"
+	"github.com/base-al/bui/commands/frontend"
 	"github.com/base-go/mamba"
 )
 

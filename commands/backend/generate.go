@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/base-go/bui/utils"
+	"github.com/base-al/bui/utils"
 	"github.com/base-go/mamba"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"

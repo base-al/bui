@@ -2,6 +2,10 @@
 
 A modern, unified CLI tool for Base Stack development. Generate backend modules (Go) and frontend modules (Nuxt/TypeScript) with a single tool, powered by [Mamba](https://github.com/base-go/mamba).
 
+[![Go Version](https://img.shields.io/github/go-mod/go-version/base-al/bui)](https://golang.org/dl/)
+[![Release](https://img.shields.io/github/v/release/base-al/bui)](https://github.com/base-al/bui/releases)
+[![License](https://img.shields.io/github/license/base-al/bui)](LICENSE)
+
 ## Features
 
 - **Unified Interface**: Single CLI for both backend and frontend generation

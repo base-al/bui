@@ -1,4 +1,4 @@
-module github.com/base-go/bui
+module github.com/base-al/bui
 
 go 1.25.0
 
@@ -32,5 +32,3 @@ require (
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 )
-
-replace github.com/base-go/bui => ./

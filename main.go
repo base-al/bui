@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/base-go/bui/commands"
+	"github.com/base-al/bui/commands"
 )
 
 func main() {

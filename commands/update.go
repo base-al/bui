@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/base-go/bui/utils"
-	"github.com/base-go/bui/version"
+	"github.com/base-al/bui/utils"
+	"github.com/base-al/bui/version"
 	"github.com/base-go/mamba"
 	"github.com/base-go/mamba/pkg/spinner"
 )

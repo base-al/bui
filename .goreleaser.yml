@@ -1,0 +1,84 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    binary: bui
+    ldflags:
+      - -s -w
+      - -X github.com/base-al/bui/version.Version={{.Version}}
+      - -X github.com/base-al/bui/version.Commit={{.Commit}}
+      - -X github.com/base-al/bui/version.Date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: base-al
+    name: bui
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} {{.Version}}"
+  footer: |
+    ## Installation
+
+    ### Via Go Install
+    ```bash
+    go install github.com/base-al/bui@{{.Tag}}
+    ```
+
+    ### Via Install Script
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash
+    ```
+
+    ### Via Direct Download
+    Download the appropriate binary for your system from the assets below.
+
+    ## What's Changed
+    See the changelog below for details.
+
+    ---
+    **Full Changelog**: https://github.com/base-al/bui/compare/{{.PreviousTag}}...{{.Tag}}

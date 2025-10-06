@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/base-go/bui/utils"
+	"github.com/base-al/bui/utils"
 	"github.com/base-go/mamba"
 )
 
