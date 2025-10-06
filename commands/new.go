@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/base-go/mamba"
-	"github.com/base-go/mamba/pkg/spinner"
 )
 
 var newCmd = &mamba.Command{
@@ -104,11 +103,11 @@ func cloneWithSpinner(cmd *mamba.Command, name, repoURL, targetDir string) error
 		return nil
 	}
 
-	err := spinner.WithSpinner(fmt.Sprintf("Cloning %s template...", name), func() error {
-		return cloneTemplate(repoURL, targetDir)
-	})
+	// Show spinner (non-blocking)
+	cmd.PrintInfo(fmt.Sprintf("Cloning %s template...", name))
 
-	if err != nil {
+	// Clone without spinner wrapper to avoid deadlocks
+	if err := cloneTemplate(repoURL, targetDir); err != nil {
 		return fmt.Errorf("failed to clone %s: %w", name, err)
 	}
 
@@ -124,30 +123,24 @@ func cleanupAndInit(cmd *mamba.Command, projectName string) error {
 	os.RemoveAll(filepath.Join("admin-template", ".git"))
 
 	// Initialize new git repository
-	if Verbose {
+	if !Verbose {
+		cmd.PrintInfo("Initializing project...")
+	} else {
 		cmd.PrintInfo("Initializing git repository...")
 	}
 
-	var err error
-	if !Verbose {
-		err = spinner.WithSpinner("Initializing project...", func() error {
-			if err := initGitRepo(); err != nil {
-				return err
-			}
-			createProjectReadme(projectName)
-			return nil
-		})
-	} else {
-		if err := initGitRepo(); err != nil {
-			cmd.PrintWarning(fmt.Sprintf("Failed to initialize git: %v", err))
-		} else {
-			cmd.PrintSuccess("Git repository initialized")
-		}
-		cmd.PrintInfo("Creating project README...")
-		createProjectReadme(projectName)
+	if err := initGitRepo(); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to initialize git: %v", err))
+	} else if Verbose {
+		cmd.PrintSuccess("Git repository initialized")
 	}
 
-	return err
+	if Verbose {
+		cmd.PrintInfo("Creating project README...")
+	}
+	createProjectReadme(projectName)
+
+	return nil
 }
 
 func initGitRepo() error {
