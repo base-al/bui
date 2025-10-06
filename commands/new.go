@@ -142,6 +142,24 @@ func updateGoImports(dir, projectName string) error {
 		// Replace all "base/" imports with "projectName/"
 		newContent := strings.ReplaceAll(contentStr, "\"base/", fmt.Sprintf("\"%s/", projectName))
 
+		// Also update Swagger documentation comments in main.go
+		if strings.HasSuffix(path, "/main.go") || strings.HasSuffix(path, "/Main.go") {
+			titleCase := strings.ToUpper(projectName[:1]) + projectName[1:]
+
+			// Update @title
+			newContent = strings.ReplaceAll(newContent, "// @title Negenet API", fmt.Sprintf("// @title %s API", titleCase))
+			newContent = strings.ReplaceAll(newContent, "// @title Base API", fmt.Sprintf("// @title %s API", titleCase))
+
+			// Update @description
+			newContent = strings.ReplaceAll(newContent, "// @description This is the API documentation for Negenet", fmt.Sprintf("// @description This is the API documentation for %s", titleCase))
+			newContent = strings.ReplaceAll(newContent, "// @description This is the API documentation for Base", fmt.Sprintf("// @description This is the API documentation for %s", titleCase))
+
+			// Update @contact info
+			newContent = strings.ReplaceAll(newContent, "// @contact.name Negenet Team", fmt.Sprintf("// @contact.name %s Team", titleCase))
+			newContent = strings.ReplaceAll(newContent, "// @contact.email info@negenet.com", "// @contact.email info@example.com")
+			newContent = strings.ReplaceAll(newContent, "// @contact.url https://negenet.com", "// @contact.url https://example.com")
+		}
+
 		// Only write if content changed
 		if newContent != contentStr {
 			if err := os.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
@@ -355,7 +373,7 @@ bui g frontend product name:string price:float
 ## License
 
 MIT
-`, projectName, backendDir, frontendDir, backendDir, backendDir, frontendDir, frontendDir)
+`, projectName, backendDir, frontendDir, backendDir, frontendDir)
 
 	os.WriteFile("README.md", []byte(readme), 0644)
 }
