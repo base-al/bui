@@ -122,34 +122,38 @@ func cloneWithSpinner(cmd *mamba.Command, name, repoURL, targetDir string) error
 	return nil
 }
 
-func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
-	// Update backend Main.go package name
-	mainGoPath := filepath.Join(backendDir, "Main.go")
-	if _, err := os.Stat(mainGoPath); err == nil {
-		if Verbose {
-			cmd.PrintInfo("Updating Main.go package name...")
-		}
-
-		content, err := os.ReadFile(mainGoPath)
+func updateGoImports(dir, projectName string) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return fmt.Errorf("failed to read Main.go: %w", err)
+			return err
 		}
 
-		// Replace module name in go.mod style (base -> projectName)
+		// Skip non-.go files
+		if info.IsDir() || !strings.HasSuffix(path, ".go") {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
 		contentStr := string(content)
-		// This assumes the template uses "base" as module name
-		contentStr = strings.ReplaceAll(contentStr, "module base", fmt.Sprintf("module %s", projectName))
-		contentStr = strings.ReplaceAll(contentStr, "\"base/", fmt.Sprintf("\"%s/", projectName))
+		// Replace all "base/" imports with "projectName/"
+		newContent := strings.ReplaceAll(contentStr, "\"base/", fmt.Sprintf("\"%s/", projectName))
 
-		if err := os.WriteFile(mainGoPath, []byte(contentStr), 0644); err != nil {
-			return fmt.Errorf("failed to write Main.go: %w", err)
+		// Only write if content changed
+		if newContent != contentStr {
+			if err := os.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
+				return err
+			}
 		}
 
-		if Verbose {
-			cmd.PrintSuccess("Updated Main.go")
-		}
-	}
+		return nil
+	})
+}
 
+func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
 	// Update backend go.mod
 	goModPath := filepath.Join(backendDir, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
@@ -172,6 +176,17 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 		if Verbose {
 			cmd.PrintSuccess("Updated go.mod")
 		}
+	}
+
+	// Update all .go files in backend to replace "base/" imports with projectName
+	if Verbose {
+		cmd.PrintInfo("Updating Go import statements...")
+	}
+	if err := updateGoImports(backendDir, projectName); err != nil {
+		return fmt.Errorf("failed to update Go imports: %w", err)
+	}
+	if Verbose {
+		cmd.PrintSuccess("Updated Go import statements")
 	}
 
 	// Update frontend package.json
