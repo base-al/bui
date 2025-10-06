@@ -13,6 +13,9 @@ import (
 	"golang.org/x/text/language"
 )
 
+// Verbose is set by root command
+var Verbose *bool
+
 var GenerateBackendCmd = &mamba.Command{
 	Use:     "backend [name] [field:type...]",
 	Aliases: []string{"be", "api"},
@@ -37,8 +40,11 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 	}
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+			cmd.PrintError(fmt.Sprintf("Failed to create directory %s: %v", dir, err))
 			return
+		}
+		if Verbose != nil && *Verbose {
+			cmd.PrintInfo(fmt.Sprintf("Created directory: %s", dir))
 		}
 	}
 
@@ -98,64 +104,86 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 
 	// Check if goimports is installed
 	if _, err := exec.LookPath("goimports"); err != nil {
-		fmt.Println("goimports not found, installing...")
+		if Verbose != nil && *Verbose {
+			cmd.PrintInfo("Installing goimports...")
+		}
 		if err := exec.Command("go", "install", "golang.org/x/tools/cmd/goimports@latest").Run(); err != nil {
-			fmt.Printf("Error installing goimports: %v\n", err)
-			fmt.Println("Please install goimports manually: go install golang.org/x/tools/cmd/goimports@latest")
+			cmd.PrintWarning("Failed to install goimports")
+			if Verbose != nil && *Verbose {
+				cmd.PrintInfo("Install manually: go install golang.org/x/tools/cmd/goimports@latest")
+			}
 			return
 		}
-		fmt.Println("goimports installed successfully")
+		if Verbose != nil && *Verbose {
+			cmd.PrintSuccess("goimports installed")
+		}
 	}
 
 	// Run goimports on generated files
 	generatedPath := filepath.Join("app", naming.DirName)
 
-	fmt.Println("Running goimports on generated files...")
+	if Verbose != nil && *Verbose {
+		cmd.PrintInfo("Formatting generated files...")
+	}
+
 	// Run goimports on the generated directory
 	if err := exec.Command("find", generatedPath, "-name", "*.go", "-exec", "goimports", "-w", "{}", ";").Run(); err != nil {
-		fmt.Printf("Error running goimports on %s: %v\n", generatedPath, err)
+		if Verbose != nil && *Verbose {
+			cmd.PrintWarning(fmt.Sprintf("Failed to run goimports on %s", generatedPath))
+		}
 	}
 
 	// Run goimports on the model file
 	modelPath := filepath.Join("app", "models", naming.ModelSnake+".go")
 	if err := exec.Command("goimports", "-w", modelPath).Run(); err != nil {
-		fmt.Printf("Error running goimports on %s: %v\n", modelPath, err)
+		if Verbose != nil && *Verbose {
+			cmd.PrintWarning(fmt.Sprintf("Failed to run goimports on %s", modelPath))
+		}
 	}
 
 	// Format all generated files with gofmt
-	fmt.Println("Formatting generated files...")
 	if err := exec.Command("gofmt", "-w", generatedPath).Run(); err != nil {
-		fmt.Printf("Warning: Failed to format generated files in %s: %v\n", generatedPath, err)
+		if Verbose != nil && *Verbose {
+			cmd.PrintWarning(fmt.Sprintf("Failed to format %s", generatedPath))
+		}
 	}
 	if err := exec.Command("gofmt", "-w", modelPath).Run(); err != nil {
-		fmt.Printf("Warning: Failed to format model file %s: %v\n", modelPath, err)
+		if Verbose != nil && *Verbose {
+			cmd.PrintWarning(fmt.Sprintf("Failed to format %s", modelPath))
+		}
 	}
 
 	// Add module to app/init.go
 	if err := addModuleToAppInit(naming.DirName); err != nil {
-		fmt.Printf("Warning: Could not add module to app/init.go: %v\n", err)
-		fmt.Printf("Please manually add: _ \"base/app/%s\" to app/init.go\n", naming.DirName)
+		cmd.PrintWarning("Could not add module to app/init.go")
+		cmd.PrintInfo(fmt.Sprintf("Manually add to app/init.go: modules[\"%s\"] = %s.Init(deps)", naming.DirName, naming.DirName))
 	} else {
-		fmt.Printf("✅ Added module to app/init.go\n")
+		if Verbose != nil && *Verbose {
+			cmd.PrintSuccess("Added module to app/init.go")
+		}
 
 		// Format init.go after modification
 		initGoPath := filepath.Join("app", "init.go")
 		if err := exec.Command("gofmt", "-w", initGoPath).Run(); err != nil {
-			fmt.Printf("Warning: Failed to format app/init.go: %v\n", err)
-		} else {
-			fmt.Printf("✅ Formatted app/init.go\n")
+			if Verbose != nil && *Verbose {
+				cmd.PrintWarning("Failed to format app/init.go")
+			}
 		}
 	}
 
 	// Run go mod tidy to ensure dependencies are up to date
-	fmt.Println("Running go mod tidy...")
+	if Verbose != nil && *Verbose {
+		cmd.PrintInfo("Running go mod tidy...")
+	}
 	if err := exec.Command("go", "mod", "tidy").Run(); err != nil {
-		fmt.Printf("Warning: Failed to run go mod tidy: %v\n", err)
-	} else {
-		fmt.Printf("✅ Dependencies updated\n")
+		if Verbose != nil && *Verbose {
+			cmd.PrintWarning("Failed to run go mod tidy")
+		}
 	}
 
-	fmt.Printf("Successfully generated %s module\n", naming.Model)
+	if Verbose == nil || !*Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated backend module: %s", naming.Model))
+	}
 }
 
 // addModuleToAppInit adds the module to app/init.go

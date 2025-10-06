@@ -38,5 +38,6 @@ func Execute() error {
 }
 
 func init() {
-	// Commands will be added by individual command files
+	// Add global verbose flag
+	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Enable verbose output")
 }

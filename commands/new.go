@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/base-go/mamba"
+	"github.com/base-go/mamba/pkg/spinner"
 )
 
 var newCmd = &mamba.Command{
@@ -48,7 +49,6 @@ func createNewProject(cmd *mamba.Command, args []string) {
 	}
 
 	cmd.PrintInfo(fmt.Sprintf("Creating new Base Stack project: %s", projectName))
-	cmd.PrintInfo("")
 
 	// Create project directory
 	if err := os.MkdirAll(projectName, 0755); err != nil {
@@ -62,50 +62,86 @@ func createNewProject(cmd *mamba.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Clone backend template
-	cmd.PrintInfo("Cloning backend template (admin-api-template)...")
-	if err := cloneTemplate("git@github.com:base-al/admin-api-template.git", "admin-api-template"); err != nil {
+	// Clone backend template with spinner
+	if err := cloneWithSpinner(cmd, "backend", "git@github.com:base-al/admin-api-template.git", "admin-api-template"); err != nil {
 		cmd.PrintError(fmt.Sprintf("Failed to clone backend template: %v", err))
 		cleanup(projectName)
 		os.Exit(1)
 	}
-	cmd.PrintSuccess("Backend template cloned")
 
-	// Clone frontend template
-	cmd.PrintInfo("Cloning frontend template (admin-template)...")
-	if err := cloneTemplate("git@github.com:base-al/admin-template.git", "admin-template"); err != nil {
+	// Clone frontend template with spinner
+	if err := cloneWithSpinner(cmd, "frontend", "git@github.com:base-al/admin-template.git", "admin-template"); err != nil {
 		cmd.PrintError(fmt.Sprintf("Failed to clone frontend template: %v", err))
 		cleanup(projectName)
 		os.Exit(1)
 	}
-	cmd.PrintSuccess("Frontend template cloned")
 
-	// Remove .git directories from templates
-	cmd.PrintInfo("Cleaning up template git histories...")
-	os.RemoveAll(filepath.Join("admin-api-template", ".git"))
-	os.RemoveAll(filepath.Join("admin-template", ".git"))
-
-	// Initialize new git repository
-	cmd.PrintInfo("Initializing git repository...")
-	if err := initGitRepo(); err != nil {
-		cmd.PrintWarning(fmt.Sprintf("Failed to initialize git: %v", err))
-	} else {
-		cmd.PrintSuccess("Git repository initialized")
+	// Cleanup and initialize
+	if err := cleanupAndInit(cmd, projectName); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Setup incomplete: %v", err))
 	}
-
-	// Create README
-	cmd.PrintInfo("Creating project README...")
-	createProjectReadme(projectName)
 
 	// Print success message and next steps
 	printSuccessMessage(cmd, projectName)
 }
 
 func cloneTemplate(repoURL, targetDir string) error {
-	gitCmd := exec.Command("git", "clone", repoURL, targetDir)
-	gitCmd.Stdout = os.Stdout
-	gitCmd.Stderr = os.Stderr
+	gitCmd := exec.Command("git", "clone", "--depth", "1", repoURL, targetDir)
+	if Verbose {
+		gitCmd.Stdout = os.Stdout
+		gitCmd.Stderr = os.Stderr
+	}
 	return gitCmd.Run()
+}
+
+func cloneWithSpinner(cmd *mamba.Command, name, repoURL, targetDir string) error {
+	if Verbose {
+		cmd.PrintInfo(fmt.Sprintf("Cloning %s template...", name))
+		if err := cloneTemplate(repoURL, targetDir); err != nil {
+			return err
+		}
+		cmd.PrintSuccess(fmt.Sprintf("%s template cloned", name))
+		return nil
+	}
+
+	return spinner.WithSpinner(fmt.Sprintf("Cloning %s template...", name), func() error {
+		return cloneTemplate(repoURL, targetDir)
+	})
+}
+
+func cleanupAndInit(cmd *mamba.Command, projectName string) error {
+	// Remove .git directories from templates
+	if Verbose {
+		cmd.PrintInfo("Cleaning up template git histories...")
+	}
+	os.RemoveAll(filepath.Join("admin-api-template", ".git"))
+	os.RemoveAll(filepath.Join("admin-template", ".git"))
+
+	// Initialize new git repository
+	if Verbose {
+		cmd.PrintInfo("Initializing git repository...")
+	}
+
+	var err error
+	if !Verbose {
+		err = spinner.WithSpinner("Initializing project...", func() error {
+			if err := initGitRepo(); err != nil {
+				return err
+			}
+			createProjectReadme(projectName)
+			return nil
+		})
+	} else {
+		if err := initGitRepo(); err != nil {
+			cmd.PrintWarning(fmt.Sprintf("Failed to initialize git: %v", err))
+		} else {
+			cmd.PrintSuccess("Git repository initialized")
+		}
+		cmd.PrintInfo("Creating project README...")
+		createProjectReadme(projectName)
+	}
+
+	return err
 }
 
 func initGitRepo() error {
