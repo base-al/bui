@@ -32,7 +32,7 @@ var versionCmd = &mamba.Command{
 				}
 				fmt.Println("⚠️  This is a major version with potential breaking changes.")
 				fmt.Printf("📚 Changelog: %s\n", release.HTMLURL)
-				fmt.Println("\nTo upgrade: base upgrade")
+				fmt.Println("\nTo upgrade: bui upgrade")
 			} else {
 				fmt.Print(version.FormatUpdateMessage(
 					info.Version,
