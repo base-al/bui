@@ -322,26 +322,28 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 }
 
 func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
-	// Copy .env.example to .env for backend
+	// Copy .env.sample to .env for backend (backend uses .env.sample)
 	if Verbose {
-		cmd.PrintInfo("Copying .env.example to .env...")
+		cmd.PrintInfo("Setting up environment files...")
 	}
 
-	backendEnvExample := filepath.Join(backendDir, ".env.example")
+	backendEnvSample := filepath.Join(backendDir, ".env.sample")
 	backendEnv := filepath.Join(backendDir, ".env")
-	if err := copyFileNew(backendEnvExample, backendEnv); err != nil {
-		cmd.PrintWarning(fmt.Sprintf("Failed to copy backend .env: %v", err))
+
+	// Check if .env.sample exists (backend)
+	if _, err := os.Stat(backendEnvSample); err == nil {
+		if err := copyFileNew(backendEnvSample, backendEnv); err != nil {
+			cmd.PrintWarning(fmt.Sprintf("Failed to copy backend .env: %v", err))
+		} else if Verbose {
+			cmd.PrintSuccess("Created backend .env from .env.sample")
+		}
 	}
 
-	// Copy .env.example to .env for frontend
-	frontendEnvExample := filepath.Join(frontendDir, ".env.example")
-	frontendEnv := filepath.Join(frontendDir, ".env")
-	if err := copyFileNew(frontendEnvExample, frontendEnv); err != nil {
-		cmd.PrintWarning(fmt.Sprintf("Failed to copy frontend .env: %v", err))
-	}
+	// Frontend doesn't have .env file by default, skip it
+	// The frontend uses runtime config from nuxt.config.ts
 
 	if Verbose {
-		cmd.PrintSuccess("Copied .env files")
+		cmd.PrintSuccess("Environment setup complete")
 	}
 
 	// Run bun install
@@ -350,6 +352,9 @@ func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
 	}
 	bunInstallCmd := exec.Command("bun", "install")
 	bunInstallCmd.Dir = frontendDir
+	bunInstallCmd.Stdout = os.Stdout
+	bunInstallCmd.Stderr = os.Stderr
+
 	if err := bunInstallCmd.Run(); err != nil {
 		return fmt.Errorf("failed to run bun install: %w", err)
 	}
