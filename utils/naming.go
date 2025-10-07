@@ -180,7 +180,8 @@ func ParseField(fieldDef string) Field {
 	case "media":
 		// Media fields need a foreign key field (e.g., ImageId for Image field)
 		foreignKeyField := field.Name + "Id"
-		field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
+		field.JSONTag = ToSnakeCase(fieldName)
+		field.JSONName = ToSnakeCase(fieldName)
 		field.GORMTag = fmt.Sprintf(`gorm:"foreignKey:%s"`, foreignKeyField)
 		field.IsMedia = true
 		field.MediaFKField = foreignKeyField

@@ -165,7 +165,7 @@ func (s *{{.Model}}Service) Update(id uint, req *models.Update{{.Model}}Request)
     {{- if or (contains .Type "int") (contains .Type "uint") (contains .Type "float")}}
     // For pointer numeric fields
     if req.{{.Name}} != nil && *req.{{.Name}} != 0 {
-        item.{{.Name}} = *req.{{.Name}}
+        item.{{.Name}} = req.{{.Name}}
     }
     {{- else if or (contains .Type "media.Media") (contains .Type "models.")}}
     // Skip - relation objects are not in request, only FK fields
