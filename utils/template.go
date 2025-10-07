@@ -115,6 +115,26 @@ func NewTemplateData(modelName string, fieldDefs []string) *TemplateData {
 				RelationType: "belongs_to_object",
 			}
 			td.Fields = append(td.Fields, relationField)
+		} else if field.IsMedia {
+			// Handle media fields - need both foreign key and media object
+			// Add the foreign key field (e.g., ImageId)
+			fkField := Field{
+				Name:            field.MediaFKField,
+				Type:            "*uint",
+				JSONTag:         ToSnakeCase(field.MediaFKField) + ",omitempty",
+				JSONName:        ToSnakeCase(field.MediaFKField), // No ",omitempty" in JSONName
+				DBName:          ToSnakeCase(field.MediaFKField),
+				GORM:            fmt.Sprintf(`gorm:"column:%s"`, ToSnakeCase(field.MediaFKField)),
+				GORMTag:         fmt.Sprintf(`gorm:"column:%s"`, ToSnakeCase(field.MediaFKField)),
+				IsMedia:         false,  // FK field itself is not media
+				IsMediaFK:       true,   // But it IS a media FK field
+				MediaFKField:    field.MediaFKField,
+				MediaFKJSONName: field.MediaFKJSONName,
+			}
+			td.Fields = append(td.Fields, fkField)
+
+			// Add the media relation field (e.g., Image)
+			td.Fields = append(td.Fields, field)
 		} else {
 			td.Fields = append(td.Fields, field)
 		}
@@ -323,15 +343,16 @@ func parseFieldDef(fieldDef string) Field {
 		// Handle special categories
 		switch resolved.Category {
 		case "storage":
-			field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
+			field.JSONName = ToSnakeCase(fieldName)
 			field.GORMTag = `gorm:"foreignKey:ModelId;references:Id"`
 		case "media":
 			// Media fields need a foreign key field (e.g., ImageId for Image field)
 			foreignKeyField := field.Name + "Id"
-			field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
+			field.JSONName = ToSnakeCase(fieldName)
 			field.GORMTag = fmt.Sprintf(`gorm:"foreignKey:%s"`, foreignKeyField)
 			field.IsMedia = true
 			field.MediaFKField = foreignKeyField
+			field.MediaFKJSONName = ToSnakeCase(foreignKeyField)
 		case "translation":
 			// Translation fields are stored as translation.Field and handled like storage attachments
 			field.Type = resolved.GoType

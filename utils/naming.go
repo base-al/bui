@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 )
@@ -116,11 +117,13 @@ type Field struct {
 	IsUnique   bool
 
 	// Special types
-	IsImage      bool
-	IsFile       bool
-	IsAttachment bool
-	IsMedia      bool
-	MediaFKField string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
+	IsImage        bool
+	IsFile         bool
+	IsAttachment   bool
+	IsMedia        bool
+	IsMediaFK      bool   // True for auto-generated FK fields for media (e.g., ImageId field)
+	MediaFKField   string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
+	MediaFKJSONName string // JSON name for media FK field (e.g., "image_id" for "Image" field)
 }
 
 // ParseField creates a properly structured Field from a field definition string
@@ -174,6 +177,14 @@ func ParseField(fieldDef string) Field {
 		field.JSONTag = ToSnakeCase(fieldName) + ",omitempty"
 		field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
 		field.GORMTag = `gorm:"foreignKey:ModelId;references:Id"`
+	case "media":
+		// Media fields need a foreign key field (e.g., ImageId for Image field)
+		foreignKeyField := field.Name + "Id"
+		field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
+		field.GORMTag = fmt.Sprintf(`gorm:"foreignKey:%s"`, foreignKeyField)
+		field.IsMedia = true
+		field.MediaFKField = foreignKeyField
+		field.MediaFKJSONName = ToSnakeCase(foreignKeyField)
 	case "translation":
 		field.Type = resolved.GoType
 		field.JSONTag = ToSnakeCase(fieldName)

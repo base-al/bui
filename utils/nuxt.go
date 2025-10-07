@@ -24,6 +24,9 @@ type NuxtField struct {
 
 // ConvertToNuxtField converts a Go Field to a NuxtField with TypeScript types
 func ConvertToNuxtField(field Field) NuxtField {
+	// Clean JSONName for label (remove ,omitempty suffix)
+	cleanJSONName := strings.TrimSuffix(field.JSONName, ",omitempty")
+
 	nf := NuxtField{
 		Field:          field,
 		TypeScriptType: GetTypeScriptType(field.Type),
@@ -37,8 +40,8 @@ func ConvertToNuxtField(field Field) NuxtField {
 		IsNullable:     IsNullableField(field),
 		IsRequired:     IsRequiredField(field),
 		DefaultValue:   GetDefaultValue(field),
-		Label:          ToCapitalCase(field.JSONName),
-		LabelLower:     strings.ToLower(ToCapitalCase(field.JSONName)),
+		Label:          ToCapitalCase(cleanJSONName),
+		LabelLower:     strings.ToLower(ToCapitalCase(cleanJSONName)),
 	}
 	return nf
 }

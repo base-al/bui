@@ -96,15 +96,17 @@ func (s *{{.Model}}Service) Create(req *models.Create{{.Model}}Request) (*models
         {{.Name}}: translation.NewField(req.{{.Name}}),
         {{- else if eq .Type "*storage.Attachment"}}
         // handled separately
-        {{- else if eq .Relationship "belongs_to"}}
+        {{- else if and (eq .Relationship "belongs_to") (not .IsMedia)}}
         {{- if hasSuffix .Name "Id" }}
         {{.Name}}: req.{{.Name}},
         {{- else }}
         {{.Name}}Id: req.{{.Name}}Id,
         {{- end }}
+        {{- else if .IsMedia}}
+        {{.MediaFKField}}: req.{{.MediaFKField}},
         {{- else if and .IsRelation (ne .Relationship "")}}
         {{- /* Skip all other relationship objects, only use foreign key IDs */}}
-        {{- else}}
+        {{- else if not .IsMediaFK}}
         {{- $fieldType := .Type }}
         {{- if eq .Type "text" }}{{$fieldType = "string"}}{{end}}
         {{.Name}}: req.{{.Name}},
@@ -165,6 +167,9 @@ func (s *{{.Model}}Service) Update(id uint, req *models.Update{{.Model}}Request)
     if req.{{.Name}} != nil && *req.{{.Name}} != 0 {
         item.{{.Name}} = *req.{{.Name}}
     }
+    {{- else if or (contains .Type "media.Media") (contains .Type "models.")}}
+    // Skip - relation objects are not in request, only FK fields
+    {{- /* Media relation objects are not in request structs */}}
     {{- else}}
     // For other pointer fields
     if req.{{.Name}} != nil {

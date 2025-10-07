@@ -10,7 +10,21 @@
         <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Basic Information</h3>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-{{range .Fields}}{{if .ShowInForm}}{{if eq .FormType "text"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
+{{range .Fields}}{{if .ShowInForm}}{{if .IsMedia}}          <MediaField
+            v-model="form.{{.MediaFKJSONName}}"
+            label="{{.Label}}"
+            {{if .IsRequired}}required{{end}}
+            accept="image"
+            class="sm:col-span-2"
+          />
+{{else if or .IsAttachment .IsFile .IsImage}}          <AttachmentField
+            v-model="form.{{.JSONName}}"
+            label="{{.Label}}"
+            {{if .IsRequired}}required{{end}}
+            accept="{{if .IsImage}}image/*{{else if .IsFile}}*/*{{else}}*/*{{end}}"
+            class="sm:col-span-2"
+          />
+{{else if eq .FormType "text"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
             <UInput
               v-model="form.{{.JSONName}}"
               placeholder="Enter {{.LabelLower}}"
@@ -106,7 +120,7 @@ const isOpen = computed({
 const isEdit = computed(() => !!props.item)
 
 const form = ref<Create{{.Model}}Input>({
-{{range .Fields}}{{if .ShowInForm}}  {{.JSONName}}: {{.DefaultValue}},
+{{range .Fields}}{{if .ShowInForm}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.DefaultValue}},
 {{end}}{{end}}})
 
 const handleSubmit = () => {
@@ -120,7 +134,7 @@ const closeModal = () => {
 
 const resetForm = () => {
   form.value = {
-{{range .Fields}}{{if .ShowInForm}}    {{.JSONName}}: {{.DefaultValue}},
+{{range .Fields}}{{if .ShowInForm}}    {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.DefaultValue}},
 {{end}}{{end}}  }
 }
 
@@ -128,7 +142,7 @@ const resetForm = () => {
 watch(() => props.item, (item) => {
   if (item) {
     form.value = {
-{{range .Fields}}{{if .ShowInForm}}      {{.JSONName}}: item.{{.JSONName}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
+{{range .Fields}}{{if .ShowInForm}}      {{if .IsMedia}}{{.MediaFKJSONName}}: item.{{.MediaFKJSONName}}{{else}}{{.JSONName}}: item.{{.JSONName}}{{end}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
 {{end}}{{end}}    }
   } else {
     resetForm()

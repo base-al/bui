@@ -5,7 +5,7 @@ export interface {{.Model}} {
   id: number
 {{range .Fields}}{{if not .IsRelation}}
   // {{.Name}} field
-  {{.JSONName}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
 {{end}}{{end}}
   // Timestamps
   created_at: string
@@ -15,7 +15,7 @@ export interface {{.Model}} {
 
 // Create/Update Input Types
 export interface Create{{.Model}}Input {
-{{range .Fields}}{{if not .IsRelation}}  {{.JSONName}}{{if not .IsRequired}}?{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+{{range .Fields}}{{if not .IsRelation}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}{{if not .IsRequired}}?{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
 {{end}}{{end}}}
 
 export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}
@@ -23,11 +23,11 @@ export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}
 // Filter Input Type
 export interface {{.Model}}FilterInput {
   search?: string
-{{range .Fields}}{{if .IsFilterable}}  {{.JSONName}}?: {{.TypeScriptType}}
+{{range .Fields}}{{if .IsFilterable}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}?: {{.TypeScriptType}}
 {{end}}{{end}}}
 
 // Sort Input Type
 export interface {{.Model}}SortInput {
-  field: 'created_at' | 'updated_at'{{range .Fields}}{{if .IsSortable}} | '{{.JSONName}}'{{end}}{{end}}
+  field: 'created_at' | 'updated_at'{{range .Fields}}{{if .IsSortable}} | '{{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}'{{end}}{{end}}
   order: 'asc' | 'desc'
 }
