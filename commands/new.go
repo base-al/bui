@@ -339,8 +339,17 @@ func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
 		}
 	}
 
-	// Frontend doesn't have .env file by default, skip it
-	// The frontend uses runtime config from nuxt.config.ts
+	// Copy .env.example to .env for frontend (if it exists)
+	frontendEnvExample := filepath.Join(frontendDir, ".env.example")
+	frontendEnv := filepath.Join(frontendDir, ".env")
+
+	if _, err := os.Stat(frontendEnvExample); err == nil {
+		if err := copyFileNew(frontendEnvExample, frontendEnv); err != nil {
+			cmd.PrintWarning(fmt.Sprintf("Failed to copy frontend .env: %v", err))
+		} else if Verbose {
+			cmd.PrintSuccess("Created frontend .env from .env.example")
+		}
+	}
 
 	if Verbose {
 		cmd.PrintSuccess("Environment setup complete")

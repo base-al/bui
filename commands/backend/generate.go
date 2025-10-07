@@ -30,6 +30,19 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 	singularName := args[0]
 	fields := args[1:]
 
+	// Detect backend directory
+	backendDir := detectBackendDir()
+	if backendDir != "" && backendDir != "." {
+		// Change to backend directory
+		if err := os.Chdir(backendDir); err != nil {
+			cmd.PrintError(fmt.Sprintf("Failed to change to backend directory: %v", err))
+			return
+		}
+		if Verbose != nil && *Verbose {
+			cmd.PrintInfo(fmt.Sprintf("Working in: %s", backendDir))
+		}
+	}
+
 	// Create naming convention from the input name
 	naming := utils.NewNamingConvention(singularName)
 
@@ -270,4 +283,39 @@ func NewAppModules() *AppModules {
 	}
 
 	return nil
+}
+
+// detectBackendDir finds the backend directory in the current working directory
+func detectBackendDir() string {
+	// Check if we're already in a backend directory
+	if _, err := os.Stat("main.go"); err == nil {
+		if _, err := os.Stat(filepath.Join("app", "models")); err == nil {
+			return "." // Already in backend directory
+		}
+	}
+
+	// Check for directories with -api suffix
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasSuffix(entry.Name(), "-api") {
+			// Check if it has main.go
+			if _, err := os.Stat(filepath.Join(entry.Name(), "main.go")); err == nil {
+				return entry.Name()
+			}
+		}
+	}
+
+	// Check for standard names
+	standardNames := []string{"admin-api-template", "admin-api", "backend", "api"}
+	for _, name := range standardNames {
+		if _, err := os.Stat(filepath.Join(name, "main.go")); err == nil {
+			return name
+		}
+	}
+
+	return "" // No backend directory found
 }

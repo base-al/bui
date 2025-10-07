@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/base-al/bui/utils"
 	"github.com/base-go/mamba"
@@ -23,11 +24,24 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 	singularName := args[0]
 	fields := args[1:]
 
+	// Detect frontend directory
+	frontendDir := detectFrontendDir()
+	if frontendDir != "" && frontendDir != "." {
+		// Change to frontend directory
+		if err := os.Chdir(frontendDir); err != nil {
+			cmd.PrintError(fmt.Sprintf("Failed to change to frontend directory: %v", err))
+			return
+		}
+		if Verbose != nil && *Verbose {
+			cmd.PrintInfo(fmt.Sprintf("Working in: %s", frontendDir))
+		}
+	}
+
 	// Create naming convention from the input name
 	naming := utils.NewNamingConvention(singularName)
 
-	// Base path for admin
-	adminPath := filepath.Join("admin", "app")
+	// Base path for app directory
+	adminPath := "app"
 
 	// Create directories
 	moduleBasePath := filepath.Join(adminPath, "modules", naming.PluralSnake)
@@ -173,4 +187,39 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 	fmt.Printf("  2. Navigate to /app/%s to see your new module\n", naming.PluralKebab)
 	fmt.Printf("  3. Ensure backend API endpoints available at /api/%s\n", naming.PluralSnake)
 	fmt.Printf("\nTip: Use 'bui g frontend %s' to regenerate or 'bui d frontend %s' to remove\n", naming.ModelSnake, naming.ModelSnake)
+}
+
+// detectFrontendDir finds the frontend directory in the current working directory
+func detectFrontendDir() string {
+	// Check if we're already in a frontend directory
+	if _, err := os.Stat("nuxt.config.ts"); err == nil {
+		if _, err := os.Stat(filepath.Join("app", "pages")); err == nil {
+			return "." // Already in frontend directory
+		}
+	}
+
+	// Check for directories with -app suffix
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasSuffix(entry.Name(), "-app") {
+			// Check if it has nuxt.config.ts
+			if _, err := os.Stat(filepath.Join(entry.Name(), "nuxt.config.ts")); err == nil {
+				return entry.Name()
+			}
+		}
+	}
+
+	// Check for standard names
+	standardNames := []string{"admin-template", "admin", "frontend", "app"}
+	for _, name := range standardNames {
+		if _, err := os.Stat(filepath.Join(name, "nuxt.config.ts")); err == nil {
+			return name
+		}
+	}
+
+	return "" // No frontend directory found
 }
