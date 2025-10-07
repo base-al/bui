@@ -98,9 +98,6 @@ func (m *Module) SeedPermissions() error {
         },
     }
 
-    // Track created/updated permission IDs for superadmin assignment
-    var permissionIDs []uint
-
     // Upsert permissions - create or update if they exist
     for _, permission := range {{.ModelSnake}}Permissions {
         var existingPermission authorization.Permission
@@ -111,7 +108,6 @@ func (m *Module) SeedPermissions() error {
             if err := m.DB.Create(&permission).Error; err != nil {
                 return err
             }
-            permissionIDs = append(permissionIDs, permission.Id)
         } else if result.Error == nil {
             // Update existing permission
             existingPermission.Name = permission.Name
@@ -119,7 +115,6 @@ func (m *Module) SeedPermissions() error {
             if err := m.DB.Save(&existingPermission).Error; err != nil {
                 return err
             }
-            permissionIDs = append(permissionIDs, existingPermission.Id)
         } else {
             // Return any other error
             return result.Error
@@ -127,42 +122,48 @@ func (m *Module) SeedPermissions() error {
     }
 
     // Assign all permissions to superadmin role (ID: 1)
-    var superadminRole authorization.Role
-    if err := m.DB.First(&superadminRole, 1).Error; err != nil {
-        if errors.Is(err, gorm.ErrRecordNotFound) {
-            // Superadmin role doesn't exist yet, skip assignment
-            return nil
-        }
+    // Check if superadmin role exists
+    var roleExists bool
+    if err := m.DB.Raw("SELECT EXISTS(SELECT 1 FROM roles WHERE id = 1)").Scan(&roleExists).Error; err != nil {
         return err
     }
 
-    // Get existing permission IDs for superadmin
-    var existingPermissions []authorization.Permission
-    if err := m.DB.Model(&superadminRole).Association("Permissions").Find(&existingPermissions); err != nil {
+    if !roleExists {
+        // Superadmin role doesn't exist yet, skip assignment
+        return nil
+    }
+
+    // Get all permission IDs for this resource type
+    var permissionIDs []uint
+    if err := m.DB.Table("permissions").
+        Where("resource_type = ?", "{{.ModelSnake}}").
+        Pluck("id", &permissionIDs).Error; err != nil {
+        return err
+    }
+
+    // Get existing permission IDs for superadmin from role_permissions table
+    var existingPermissionIDs []uint
+    if err := m.DB.Table("role_permissions").
+        Where("role_id = ?", 1).
+        Pluck("permission_id", &existingPermissionIDs).Error; err != nil {
         return err
     }
 
     existingPermissionMap := make(map[uint]bool)
-    for _, perm := range existingPermissions {
-        existingPermissionMap[perm.Id] = true
+    for _, permID := range existingPermissionIDs {
+        existingPermissionMap[permID] = true
     }
 
-    // Add only new permissions to superadmin
-    var newPermissions []authorization.Permission
+    // Insert new permissions into role_permissions table using GORM
     for _, permID := range permissionIDs {
         if !existingPermissionMap[permID] {
-            var perm authorization.Permission
-            if err := m.DB.First(&perm, permID).Error; err != nil {
+            rolePermission := authorization.RolePermission{
+                RoleId:       1,
+                PermissionId: permID,
+            }
+            if err := m.DB.Create(&rolePermission).Error; err != nil {
                 return err
             }
-            newPermissions = append(newPermissions, perm)
-        }
-    }
-
-    // Append new permissions to superadmin role
-    if len(newPermissions) > 0 {
-        if err := m.DB.Model(&superadminRole).Association("Permissions").Append(newPermissions); err != nil {
-            return err
         }
     }
 

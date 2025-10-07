@@ -183,6 +183,10 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
       this.sort = sort
     },
 
+    setPerPage(limit: number) {
+      this.pagination.limit = limit
+    },
+
     clearFilters() {
       this.filters = {}
     },

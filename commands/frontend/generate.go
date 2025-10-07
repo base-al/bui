@@ -121,18 +121,6 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 	}
 	fmt.Printf("✅ Generated stores/%s.ts\n", naming.PluralSnake)
 
-	// Generate table component
-	if err := utils.GenerateNuxtFile(
-		filepath.Join(moduleBasePath, "components"),
-		naming.Model+"Table.vue",
-		"nuxt/table.vue.tmpl",
-		templateData,
-	); err != nil {
-		fmt.Printf("Error generating table component: %v\n", err)
-		return
-	}
-	fmt.Printf("✅ Generated components/%sTable.vue\n", naming.Model)
-
 	// Generate form modal component
 	if err := utils.GenerateNuxtFile(
 		filepath.Join(moduleBasePath, "components"),

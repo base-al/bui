@@ -71,37 +71,24 @@
       </UCard>
     </div>
 
+    <!-- Edit Modal -->
+    <{{.Model}}FormModal
+      v-model="showEditModal"
+      :item="item"
+      :loading="submitting"
+      @submit="handleSubmit"
+    />
+
     <!-- Delete Modal -->
-    <UModal v-model="showDeleteModal">
-      <template #header>
-        Delete {{.Model}}
-      </template>
-
-      <template #body>
-        <div>
-          <p>Are you sure you want to delete this {{.ModelLower}}?</p>
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton
-            color="neutral"
-            variant="outline"
-            @click="showDeleteModal = false"
-          >
-            Cancel
-          </UButton>
-          <UButton
-            color="error"
-            :loading="deleting"
-            @click="confirmDelete"
-          >
-            Delete
-          </UButton>
-        </div>
-      </template>
-    </UModal>
+    <CommonConfirmationModal
+      v-model="showDeleteModal"
+      title="Delete {{.Model}}"
+      message="Are you sure you want to delete this {{.ModelLower}}?"
+      confirm-text="Delete"
+      confirm-color="error"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
       </div>
     </template>
   </UDashboardPanel>
@@ -128,6 +115,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { use{{.Plural}}Store } from '~/modules/{{.PluralSnake}}/stores/{{.PluralSnake}}'
+import type { Update{{.Model}}Input } from '~/modules/{{.PluralSnake}}/types/{{.ModelSnake}}'
+import {{.Model}}FormModal from '~/modules/{{.PluralSnake}}/components/{{.Model}}FormModal.vue'
 
 definePageMeta({
   layout: 'default',
@@ -140,8 +129,10 @@ const toast = useToast()
 
 const item = ref()
 const loading = ref(false)
+const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
+const submitting = ref(false)
 
 const id = computed(() => parseInt(route.params.id as string))
 
@@ -154,12 +145,34 @@ const goBack = () => {
 }
 
 const handleEdit = () => {
-  // Navigate to edit page or open modal
-  router.push(`/app/{{.PluralKebab}}/${id.value}/edit`)
+  showEditModal.value = true
 }
 
 const handleDelete = () => {
   showDeleteModal.value = true
+}
+
+const handleSubmit = async (data: Update{{.Model}}Input) => {
+  submitting.value = true
+  try {
+    await {{.VarPlural}}Store.update{{.Model}}(id.value, data)
+    toast.add({
+      title: 'Success',
+      description: '{{.Model}} updated successfully',
+      color: 'success',
+    })
+    showEditModal.value = false
+    // Refresh the item data
+    item.value = await {{.VarPlural}}Store.fetch{{.Model}}(id.value)
+  } catch (error: any) {
+    toast.add({
+      title: 'Error',
+      description: error.message || 'Failed to update {{.ModelLower}}',
+      color: 'error',
+    })
+  } finally {
+    submitting.value = false
+  }
 }
 
 const confirmDelete = async () => {

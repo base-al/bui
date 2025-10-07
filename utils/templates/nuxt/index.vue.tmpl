@@ -20,26 +20,29 @@
           </CommonPermissionButton>
         </div>
 
-    <!-- Filters -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <UInput
-        v-model="filters.search"
-        icon="i-lucide-search"
-        placeholder="Search {{.PluralLower}}..."
-        @update:model-value="applyFilters"
-      />
-    </div>
-
     <!-- Table -->
+    <!--
+      Using BaseTable for consistent UX across all modules.
+      If you need custom functionality, you can replace this with UTable directly.
+      DO NOT modify BaseTable component - create a custom table component instead.
+    -->
     <UCard>
-      <{{.Model}}Table
-        :{{.VarPlural}}="{{.VarPlural}}"
+      <BaseTable
+        :data="{{.VarPlural}}"
+        :columns="columns"
         :loading="loading"
-        :pagination="pagination"
-        @edit="handleEdit"
-        @delete="handleDelete"
-        @view="handleView"
+        table-name="{{.Plural}}"
+        search-column="{{range .Fields}}{{if eq .JSONName "name"}}name{{end}}{{end}}"
+        search-placeholder="Search {{.PluralLower}}..."
+        :pagination="{
+          current_page: pagination.page,
+          per_page: pagination.limit,
+          total: pagination.total
+        }"
+        :context-menu-items="getContextMenuItems"
+        :on-row-click="handleView"
         @page-change="handlePageChange"
+        @per-page-change="handlePerPageChange"
       />
     </UCard>
 
@@ -52,47 +55,26 @@
     />
 
     <!-- Delete Confirmation Modal -->
-    <UModal v-model="showDeleteModal">
-      <template #header>
-        Delete {{.Model}}
-      </template>
-
-      <template #body>
-        <div class="space-y-4">
-          <p>Are you sure you want to delete this {{.ModelLower}}?</p>
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton
-            color="neutral"
-            variant="outline"
-            @click="showDeleteModal = false"
-          >
-            Cancel
-          </UButton>
-          <UButton
-            color="error"
-            :loading="deleting"
-            @click="confirmDelete"
-          >
-            Delete
-          </UButton>
-        </div>
-      </template>
-    </UModal>
+    <CommonConfirmationModal
+      v-model="showDeleteModal"
+      title="Delete {{.Model}}"
+      message="Are you sure you want to delete this {{.ModelLower}}?"
+      confirm-text="Delete"
+      confirm-color="error"
+      :loading="deleting"
+      @confirm="confirmDelete"
+    />
       </div>
     </template>
   </UDashboardPanel>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
+import type { TableColumn, ContextMenuItem } from '@nuxt/ui'
 import { use{{.Plural}}Store } from '~/modules/{{.PluralSnake}}/stores/{{.PluralSnake}}'
 import type { {{.Model}}, Create{{.Model}}Input, Update{{.Model}}Input } from '~/modules/{{.PluralSnake}}/types/{{.ModelSnake}}'
-import {{.Model}}Table from '~/modules/{{.PluralSnake}}/components/{{.Model}}Table.vue'
 import {{.Model}}FormModal from '~/modules/{{.PluralSnake}}/components/{{.Model}}FormModal.vue'
 
 definePageMeta({
@@ -109,14 +91,36 @@ const selectedItem = ref<{{.Model}} | undefined>()
 const deleting = ref(false)
 const submitting = ref(false)
 
-const filters = reactive({
-  search: '',
-})
+// Table columns definition
+const columns: TableColumn<{{.Model}}>[] = [
+{{range .Fields}}{{if .ShowInTable}}  {
+    accessorKey: '{{.JSONName}}',
+    header: '{{.Label}}',
+  },
+{{end}}{{end}}  {
+    accessorKey: 'created_at',
+    header: 'Created',
+  },
+]
 
-const applyFilters = () => {
-  {{.VarPlural}}Store.setFilters(filters)
-  {{.VarPlural}}Store.fetch{{.Plural}}()
-}
+// Context menu for row actions
+const getContextMenuItems = (row: {{.Model}}): ContextMenuItem[] => [
+  {
+    label: 'View',
+    icon: 'i-lucide-eye',
+    click: () => handleView(row),
+  },
+  {
+    label: 'Edit',
+    icon: 'i-lucide-pencil',
+    click: () => handleEdit(row),
+  },
+  {
+    label: 'Delete',
+    icon: 'i-lucide-trash',
+    click: () => handleDelete(row),
+  },
+]
 
 const handleCreate = () => {
   selectedItem.value = undefined
@@ -193,6 +197,11 @@ const confirmDelete = async () => {
 
 const handlePageChange = (page: number) => {
   {{.VarPlural}}Store.fetch{{.Plural}}(page)
+}
+
+const handlePerPageChange = (perPage: number) => {
+  {{.VarPlural}}Store.setPerPage(perPage)
+  {{.VarPlural}}Store.fetch{{.Plural}}(1)
 }
 
 onMounted(() => {
