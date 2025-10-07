@@ -32,6 +32,13 @@ func generateBothModules(cmd *mamba.Command, args []string) {
 
 	moduleName := args[0]
 
+	// Save the original working directory
+	originalDir, err := os.Getwd()
+	if err != nil {
+		cmd.PrintError("Failed to get current directory")
+		os.Exit(1)
+	}
+
 	// Set verbose pointers for subcommands
 	backend.Verbose = &Verbose
 	frontend.Verbose = &Verbose
@@ -51,6 +58,12 @@ func generateBothModules(cmd *mamba.Command, args []string) {
 		backend.GenerateBackendCmd.Run(cmd, args)
 	}
 
+	// Return to original directory before generating frontend
+	if err := os.Chdir(originalDir); err != nil {
+		cmd.PrintError("Failed to return to original directory")
+		os.Exit(1)
+	}
+
 	// Generate frontend
 	if !Verbose {
 		err := spinner.WithSpinner("Generating frontend module...", func() error {
@@ -64,6 +77,12 @@ func generateBothModules(cmd *mamba.Command, args []string) {
 	} else {
 		cmd.PrintInfo("Generating frontend module...")
 		frontend.GenerateFrontendCmd.Run(cmd, args)
+	}
+
+	// Return to original directory after both generations
+	if err := os.Chdir(originalDir); err != nil {
+		cmd.PrintError("Failed to return to original directory")
+		os.Exit(1)
 	}
 
 	cmd.PrintSuccess("Successfully generated " + moduleName + " module (backend + frontend)")
