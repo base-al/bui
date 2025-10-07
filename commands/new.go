@@ -355,6 +355,13 @@ func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
 		cmd.PrintSuccess("Environment setup complete")
 	}
 
+	// Check if bun is installed
+	if _, err := exec.LookPath("bun"); err != nil {
+		cmd.PrintWarning("Bun is not installed. Skipping frontend dependency installation.")
+		cmd.PrintInfo("Please install Bun from https://bun.sh and run 'bun install' in the frontend directory.")
+		return nil
+	}
+
 	// Run bun install
 	if Verbose {
 		cmd.PrintInfo("Installing frontend dependencies...")
@@ -365,7 +372,9 @@ func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
 	bunInstallCmd.Stderr = os.Stderr
 
 	if err := bunInstallCmd.Run(); err != nil {
-		return fmt.Errorf("failed to run bun install: %w", err)
+		cmd.PrintWarning(fmt.Sprintf("Failed to run bun install: %v", err))
+		cmd.PrintInfo(fmt.Sprintf("Please run 'bun install' manually in %s", frontendDir))
+		return nil
 	}
 
 	if Verbose {

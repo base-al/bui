@@ -13,6 +13,9 @@ import (
     {{- if hasField .Fields "translation.Field" }}
     "{{.ModuleName}}/core/translation"
     {{- end }}
+    {{- if hasField .Fields "*media.Media" }}
+    "{{.ModuleName}}/core/app/media"
+    {{- end }}
 )
 
 // {{.Model}} represents a {{.ModelLower}} entity
@@ -51,6 +54,18 @@ type {{.Model}} struct {
     {{.Name}} *{{.RelatedModel}} `json:"{{.JSONName}},omitempty"`
     {{- else if eq .Relationship "many_to_many" }}
     {{.Name}} []*{{.RelatedModel}} `json:"{{.JSONName}}" gorm:"many2many:{{$.ModelSnake}}_{{ToSnakeCase (ToPlural .RelatedModel)}}"`
+    {{- end }}
+    {{- end}}
+    {{- /* Add foreign key IDs for media fields */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    {{.MediaFKField}} uint `json:"{{ToSnakeCase .MediaFKField}}"` // Selected from Media
+    {{- end }}
+    {{- end}}
+    {{- /* Add media reference fields */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    {{.Name}} *media.Media `json:"{{.JSONName}},omitempty" gorm:"foreignKey:{{.MediaFKField}}"`
     {{- end }}
     {{- end}}
     {{- /* Add translation fields and file attachments */}}
@@ -98,7 +113,7 @@ func (m *{{.Model}}) GetModelName() string {
 // Create{{.Model}}Request represents the request payload for creating a {{.Model}}
 type Create{{.Model}}Request struct {
     {{- range .Fields}}
-    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) }}
     {{- $fieldType := .Type }}
     {{- if eq .Type "translation.Field" }}
     {{- $fieldType = "string" }}  // Convert translation fields to string in requests
@@ -129,6 +144,8 @@ type Create{{.Model}}Request struct {
     {{- else }}
     {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
     {{- end }}
+    {{- else if .IsMedia }}
+    {{.MediaFKField}} uint `json:"{{ToSnakeCase .MediaFKField}},omitempty"` // Media ID
     {{- end }}
     {{- end}}
 }
@@ -136,7 +153,7 @@ type Create{{.Model}}Request struct {
 // Update{{.Model}}Request represents the request payload for updating a {{.Model}}
 type Update{{.Model}}Request struct {
     {{- range .Fields}}
-    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) }}
     {{- $fieldType := .Type }}
     {{- if eq .Type "translation.Field" }}
     {{- $fieldType = "string" }}  // Convert translation fields to string in requests
@@ -166,6 +183,8 @@ type Update{{.Model}}Request struct {
     {{- else }}
     {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
     {{- end }}
+    {{- else if .IsMedia }}
+    {{.MediaFKField}} uint `json:"{{ToSnakeCase .MediaFKField}},omitempty"` // Media ID
     {{- end}}
     {{- end}}
     {{- /* File fields are handled via separate upload endpoints, not in update request */}}
@@ -177,7 +196,7 @@ type {{.Model}}Response struct {
     UpdatedAt time.Time      `json:"updated_at"`
     DeletedAt gorm.DeletedAt `json:"deleted_at"`
     {{- range .Fields}}
-    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) }}
     {{.Name}} {{.Type}} `json:"{{.JSONName}}"`
     {{- end }}
     {{- end}}
@@ -207,6 +226,12 @@ type {{.Model}}Response struct {
     {{.Name}} {{.Type}} `json:"{{.JSONName}},omitempty"`
     {{- end }}
     {{- end}}
+    {{- end}}
+    {{- /* Include media fields in response */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    {{.Name}} *media.Media `json:"{{.JSONName}},omitempty"`
+    {{- end }}
     {{- end}}
     {{- /* Include file attachments in response */}}
     {{- range .Fields}}
@@ -253,7 +278,7 @@ type {{.Model}}ListResponse struct {
     UpdatedAt time.Time      `json:"updated_at"`
     DeletedAt gorm.DeletedAt `json:"deleted_at"`
     {{- range .Fields}}
-    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+    {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) }}
     {{.Name}} {{.Type}} `json:"{{.JSONName}}"`
     {{- end }}
     {{- end}}
@@ -265,6 +290,12 @@ type {{.Model}}ListResponse struct {
     {{- else }}
     {{.Name}} []string `json:"{{.JSONName}}"`
     {{- end }}
+    {{- end }}
+    {{- end}}
+    {{- /* Include media fields in list response */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    {{.Name}} *media.Media `json:"{{.JSONName}},omitempty"`
     {{- end }}
     {{- end}}
     {{- /* Include file attachments in list response */}}
@@ -310,6 +341,15 @@ func (m *{{.Model}}) ToResponse() *{{.Model}}Response {
     {{- end}}
     {{- end}}
     
+    {{- /* Convert media fields to response types */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    if m.{{.Name}} != nil {
+        response.{{.Name}} = m.{{.Name}}
+    }
+    {{- end }}
+    {{- end}}
+
     {{- /* Convert file attachments to response types */}}
     {{- range .Fields}}
     {{- if eq .Type "*storage.Attachment" }}
@@ -318,7 +358,7 @@ func (m *{{.Model}}) ToResponse() *{{.Model}}Response {
     }
     {{- end }}
     {{- end}}
-    
+
     return response
 }
 
@@ -407,17 +447,28 @@ func (m *{{.Model}}) ToListResponse() *{{.Model}}ListResponse {
     if m == nil {
         return nil
     }
-    return &{{.Model}}ListResponse{
+    response := &{{.Model}}ListResponse{
         Id:        m.Id,
         CreatedAt: m.CreatedAt,
         UpdatedAt: m.UpdatedAt,
         DeletedAt: m.DeletedAt,
         {{- range .Fields}}
-        {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") }}
+        {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) }}
         {{.Name}}: m.{{.Name}},
         {{- end }}
         {{- end}}
     }
+
+    {{- /* Convert media fields to list response */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    if m.{{.Name}} != nil {
+        response.{{.Name}} = m.{{.Name}}
+    }
+    {{- end }}
+    {{- end}}
+
+    return response
 }
 
 // Preload preloads all the model's relationships
@@ -432,6 +483,12 @@ func (m *{{.Model}}) Preload(db *gorm.DB) *gorm.DB {
     query = query.Preload("{{.Name}}")
     {{- end }}
     {{- end}}
+    {{- end}}
+    {{- /* Preload media fields */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    query = query.Preload("{{.Name}}")
+    {{- end }}
     {{- end}}
     {{- /* Storage attachments are handled separately by ActiveStorage, don't preload them */}}
     {{- /* range .Fields}}

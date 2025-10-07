@@ -18,6 +18,11 @@ var FieldTypeAliases = []FieldTypeAlias{
 	{"attachment", "storage.Attachment", "*storage.Attachment", "storage"},
 	{"*storage.Attachment", "storage.Attachment", "*storage.Attachment", "storage"},
 
+	// Media types (references to media.Media model)
+	{"media", "media.Media", "*media.Media", "media"},
+	{"media.Media", "media.Media", "*media.Media", "media"},
+	{"*media.Media", "media.Media", "*media.Media", "media"},
+
 	// Translation types
 	{"translation", "translation.Field", "translation.Field", "translation"},
 	{"locale", "translation.Field", "translation.Field", "translation"},
@@ -157,4 +162,10 @@ func IsHasManyRelationship(typeStr string) bool {
 func IsHasOneRelationship(typeStr string) bool {
 	canonical := GetCanonicalRelationship(typeStr)
 	return canonical == "has_one"
+}
+
+// IsMediaType checks if a type is a media reference
+func IsMediaType(typeStr string) bool {
+	resolved := ResolveFieldType(typeStr)
+	return resolved.Category == "media"
 }

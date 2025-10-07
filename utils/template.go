@@ -155,7 +155,6 @@ func (td *TemplateData) updateComputedProperties(field Field) {
 	}
 	if field.IsMedia {
 		td.HasMedia = true
-		td.HasAttachments = true
 	}
 	// Check for translatable fields
 	if field.Type == "translation.Field" {
@@ -195,6 +194,10 @@ func (td *TemplateData) addStandardImports() {
 			imports["base/core/translation"] = true
 		case "media.Media":
 			imports["base/core/media"] = true
+		}
+		// Check for media fields
+		if field.IsMedia {
+			imports["base/core/app/media"] = true
 		}
 	}
 
@@ -323,8 +326,12 @@ func parseFieldDef(fieldDef string) Field {
 			field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
 			field.GORMTag = `gorm:"foreignKey:ModelId;references:Id"`
 		case "media":
+			// Media fields need a foreign key field (e.g., ImageId for Image field)
+			foreignKeyField := field.Name + "Id"
 			field.JSONName = ToSnakeCase(fieldName) + ",omitempty"
-			field.GORMTag = `gorm:"foreignKey:ModelId;references:Id"`
+			field.GORMTag = fmt.Sprintf(`gorm:"foreignKey:%s"`, foreignKeyField)
+			field.IsMedia = true
+			field.MediaFKField = foreignKeyField
 		case "translation":
 			// Translation fields are stored as translation.Field and handled like storage attachments
 			field.Type = resolved.GoType

@@ -120,6 +120,7 @@ type Field struct {
 	IsFile       bool
 	IsAttachment bool
 	IsMedia      bool
+	MediaFKField string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
 }
 
 // ParseField creates a properly structured Field from a field definition string
