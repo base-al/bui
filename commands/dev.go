@@ -44,6 +44,11 @@ func runDev(cmd *mamba.Command, args []string) {
 		}
 	}
 
+	// Generate Swagger docs if backend is found
+	if backendDir != "" {
+		generateSwaggerDocs(cmd, backendDir)
+	}
+
 	if fileExists("nuxt.config.ts") {
 		frontendDir = "."
 	} else {
@@ -160,4 +165,40 @@ func findDirWithSuffix(suffix string) string {
 		}
 	}
 	return ""
+}
+
+// generateSwaggerDocs generates Swagger documentation for the backend
+func generateSwaggerDocs(cmd *mamba.Command, backendDir string) {
+	cmd.PrintInfo("Generating Swagger documentation...")
+
+	// Find go executable
+	goPath, err := exec.LookPath("go")
+	if err != nil {
+		cmd.PrintWarning("Go executable not found, skipping swagger generation")
+		return
+	}
+
+	// Ensure swag is installed
+	if _, err := exec.LookPath("swag"); err != nil {
+		cmd.PrintInfo("Installing swag...")
+		installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
+		installCmd.Stdout = os.Stdout
+		installCmd.Stderr = os.Stderr
+		if err := installCmd.Run(); err != nil {
+			cmd.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
+			return
+		}
+	}
+
+	// Generate swagger docs
+	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./docs", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+	swagCmd.Dir = backendDir
+	swagCmd.Stdout = os.Stdout
+	swagCmd.Stderr = os.Stderr
+
+	if err := swagCmd.Run(); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
+	} else {
+		cmd.PrintSuccess("Swagger documentation generated at /docs/")
+	}
 }

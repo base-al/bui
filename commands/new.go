@@ -156,8 +156,13 @@ func updateGoImports(dir, projectName string) error {
 
 			// Update @contact info
 			newContent = strings.ReplaceAll(newContent, "// @contact.name Negenet Team", fmt.Sprintf("// @contact.name %s Team", titleCase))
-			newContent = strings.ReplaceAll(newContent, "// @contact.email info@negenet.com", "// @contact.email info@example.com")
-			newContent = strings.ReplaceAll(newContent, "// @contact.url https://negenet.com", "// @contact.url https://example.com")
+			newContent = strings.ReplaceAll(newContent, "// @contact.name Base Team", fmt.Sprintf("// @contact.name %s Team", titleCase))
+			newContent = strings.ReplaceAll(newContent, "// @contact.email info@negenet.com", fmt.Sprintf("// @contact.email info@%s.com", strings.ToLower(projectName)))
+			newContent = strings.ReplaceAll(newContent, "// @contact.email info@example.com", fmt.Sprintf("// @contact.email info@%s.com", strings.ToLower(projectName)))
+			newContent = strings.ReplaceAll(newContent, "// @contact.url https://negenet.com", fmt.Sprintf("// @contact.url https://%s.com", strings.ToLower(projectName)))
+			newContent = strings.ReplaceAll(newContent, "// @contact.url https://example.com", fmt.Sprintf("// @contact.url https://%s.com", strings.ToLower(projectName)))
+			newContent = strings.ReplaceAll(newContent, "// @termsOfService https://negenet.com/terms", fmt.Sprintf("// @termsOfService https://%s.com/terms", strings.ToLower(projectName)))
+			newContent = strings.ReplaceAll(newContent, "// @termsOfService https://example.com/terms", fmt.Sprintf("// @termsOfService https://%s.com/terms", strings.ToLower(projectName)))
 		}
 
 		// Only write if content changed
@@ -169,6 +174,69 @@ func updateGoImports(dir, projectName string) error {
 
 		return nil
 	})
+}
+
+func updateFrontendProjectStrings(dir, projectName string) error {
+	// Create title case version of project name (capitalize first letter)
+	titleCase := strings.ToUpper(projectName[:1]) + projectName[1:]
+	projectAdmin := titleCase + " Admin"
+
+	// Update login page (index.vue)
+	indexPath := filepath.Join(dir, "app", "pages", "index.vue")
+	if _, err := os.Stat(indexPath); err == nil {
+		content, err := os.ReadFile(indexPath)
+		if err != nil {
+			return fmt.Errorf("failed to read index.vue: %w", err)
+		}
+
+		contentStr := string(content)
+		// Replace BaseAdmin with ProjectName Admin
+		contentStr = strings.ReplaceAll(contentStr, "BaseAdmin", projectAdmin)
+		// Replace Admin Management System with custom description
+		contentStr = strings.ReplaceAll(contentStr, "Admin Management System", projectAdmin+" Management System")
+		// Replace example email placeholder
+		contentStr = strings.ReplaceAll(contentStr, "admin@example.com", fmt.Sprintf("admin@%s.com", strings.ToLower(projectName)))
+
+		if err := os.WriteFile(indexPath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write index.vue: %w", err)
+		}
+	}
+
+	// Update auth store (app/stores/auth.ts)
+	authStorePath := filepath.Join(dir, "app", "stores", "auth.ts")
+	if _, err := os.Stat(authStorePath); err == nil {
+		content, err := os.ReadFile(authStorePath)
+		if err != nil {
+			return fmt.Errorf("failed to read auth.ts: %w", err)
+		}
+
+		contentStr := string(content)
+		// Replace localStorage key
+		contentStr = strings.ReplaceAll(contentStr, "base_auth", fmt.Sprintf("%s_auth", strings.ToLower(projectName)))
+
+		if err := os.WriteFile(authStorePath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write auth.ts: %w", err)
+		}
+	}
+
+	// Update settings store (app/stores/settings.ts)
+	settingsStorePath := filepath.Join(dir, "app", "stores", "settings.ts")
+	if _, err := os.Stat(settingsStorePath); err == nil {
+		content, err := os.ReadFile(settingsStorePath)
+		if err != nil {
+			return fmt.Errorf("failed to read settings.ts: %w", err)
+		}
+
+		contentStr := string(content)
+		// Replace default company name
+		contentStr = strings.ReplaceAll(contentStr, `|| 'Base'`, fmt.Sprintf(`|| '%s'`, titleCase))
+
+		if err := os.WriteFile(settingsStorePath, []byte(contentStr), 0644); err != nil {
+			return fmt.Errorf("failed to write settings.ts: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
@@ -233,6 +301,17 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 		}
 	}
 
+	// Update frontend project-specific strings
+	if Verbose {
+		cmd.PrintInfo("Updating frontend project strings...")
+	}
+	if err := updateFrontendProjectStrings(frontendDir, projectName); err != nil {
+		return fmt.Errorf("failed to update frontend strings: %w", err)
+	}
+	if Verbose {
+		cmd.PrintSuccess("Updated frontend project strings")
+	}
+
 	return nil
 }
 
@@ -279,6 +358,12 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+
+# Production build
+dist/
+*-dist/
+*.tar.gz
+deploy.tar.gz
 `
 	if err := os.WriteFile(".gitignore", []byte(gitignoreContent), 0644); err != nil {
 		return err
