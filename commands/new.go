@@ -88,6 +88,11 @@ func createNewProject(cmd *mamba.Command, args []string) {
 		cmd.PrintWarning(fmt.Sprintf("Failed to update project files: %v", err))
 	}
 
+	// Copy .env.example to .env
+	if err := copyEnvFile(cmd, backendDir, frontendDir); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to copy .env.example to .env: %v", err))
+	}
+
 	// Print success message and next steps
 	printSuccessMessage(cmd, projectName)
 }
@@ -315,6 +320,19 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 	return nil
 }
 
+func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
+	// Copy .env.example to .env
+	if Verbose {
+		cmd.PrintInfo("Copying .env.example to .env...")
+	}
+	copyFile(filepath.Join(backendDir, ".env.example"), filepath.Join(backendDir, ".env"))
+	copyFile(filepath.Join(frontendDir, ".env.example"), filepath.Join(frontendDir, ".env"))
+	if Verbose {
+		cmd.PrintSuccess("Copied .env.example to .env")
+	}
+	return nil
+}
+
 func cleanupAndInit(cmd *mamba.Command, projectName, backendDir, frontendDir string) error {
 	// Remove .git directories from templates
 	if Verbose {
@@ -404,23 +422,23 @@ Base Stack project created with [Bui CLI](https://github.com/base-al/bui).
 
 ### Backend Setup
 
-` + "```bash" + `
+`+"```bash"+`
 cd %s
 cp .env.sample .env
 # Edit .env with your database credentials
 go mod tidy
 bui start
-` + "```" + `
+`+"```"+`
 
 Backend will run on http://localhost:8000
 
 ### Frontend Setup
 
-` + "```bash" + `
+`+"```bash"+`
 cd %s
 bun install
 bun dev
-` + "```" + `
+`+"```"+`
 
 Frontend will run on http://localhost:3030
 
@@ -428,9 +446,9 @@ Frontend will run on http://localhost:3030
 
 From project root:
 
-` + "```bash" + `
+`+"```bash"+`
 bui dev
-` + "```" + `
+`+"```"+`
 
 This starts both backend and frontend servers concurrently.
 
@@ -438,7 +456,7 @@ This starts both backend and frontend servers concurrently.
 
 Generate a complete CRUD module for both backend and frontend:
 
-` + "```bash" + `
+`+"```bash"+`
 # Generate both backend and frontend
 bui g product name:string price:float description:text
 
@@ -447,7 +465,7 @@ bui g backend product name:string price:float
 
 # Frontend only
 bui g frontend product name:string price:float
-` + "```" + `
+`+"```"+`
 
 ## Documentation
 
