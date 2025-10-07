@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -321,15 +322,42 @@ func updateProjectFiles(cmd *mamba.Command, projectName, backendDir, frontendDir
 }
 
 func copyEnvFile(cmd *mamba.Command, backendDir, frontendDir string) error {
-	// Copy .env.example to .env
+	// Copy .env.example to .env for backend
 	if Verbose {
 		cmd.PrintInfo("Copying .env.example to .env...")
 	}
-	copyFile(filepath.Join(backendDir, ".env.example"), filepath.Join(backendDir, ".env"))
-	copyFile(filepath.Join(frontendDir, ".env.example"), filepath.Join(frontendDir, ".env"))
-	if Verbose {
-		cmd.PrintSuccess("Copied .env.example to .env")
+
+	backendEnvExample := filepath.Join(backendDir, ".env.example")
+	backendEnv := filepath.Join(backendDir, ".env")
+	if err := copyFileNew(backendEnvExample, backendEnv); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to copy backend .env: %v", err))
 	}
+
+	// Copy .env.example to .env for frontend
+	frontendEnvExample := filepath.Join(frontendDir, ".env.example")
+	frontendEnv := filepath.Join(frontendDir, ".env")
+	if err := copyFileNew(frontendEnvExample, frontendEnv); err != nil {
+		cmd.PrintWarning(fmt.Sprintf("Failed to copy frontend .env: %v", err))
+	}
+
+	if Verbose {
+		cmd.PrintSuccess("Copied .env files")
+	}
+
+	// Run bun install
+	if Verbose {
+		cmd.PrintInfo("Installing frontend dependencies...")
+	}
+	bunInstallCmd := exec.Command("bun", "install")
+	bunInstallCmd.Dir = frontendDir
+	if err := bunInstallCmd.Run(); err != nil {
+		return fmt.Errorf("failed to run bun install: %w", err)
+	}
+
+	if Verbose {
+		cmd.PrintSuccess("Frontend dependencies installed")
+	}
+
 	return nil
 }
 
@@ -534,4 +562,22 @@ func isValidProjectName(name string) bool {
 func cleanup(projectName string) {
 	os.Chdir("..")
 	os.RemoveAll(projectName)
+}
+
+// copyFileNew copies a file from src to dst
+func copyFileNew(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
 }
