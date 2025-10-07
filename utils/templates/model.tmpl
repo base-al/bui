@@ -5,13 +5,13 @@ import (
     "time"
     "gorm.io/gorm"
     {{- if .HasImageField }}
-    "base/core/storage"
+    "{{.ModuleName}}/core/storage"
     {{- end }}
     {{- if or (hasField .Fields "time.Time") (hasField .Fields "types.DateTime") }}
-    "base/core/types"
+    "{{.ModuleName}}/core/types"
     {{- end }}
     {{- if hasField .Fields "translation.Field" }}
-    "base/core/translation"
+    "{{.ModuleName}}/core/translation"
     {{- end }}
 )
 

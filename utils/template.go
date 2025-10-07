@@ -54,6 +54,9 @@ type TemplateData struct {
 	// Naming conventions for the model
 	*NamingConvention
 
+	// Go module name from go.mod
+	ModuleName string
+
 	// Fields including relations
 	Fields []Field
 
@@ -346,6 +349,24 @@ func inferFieldTypeCompat(fieldName string) string {
 	return "string"
 }
 
+// GetGoModuleName reads the Go module name from go.mod file
+func GetGoModuleName() string {
+	content, err := os.ReadFile("go.mod")
+	if err != nil {
+		return "base" // fallback to default
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module"))
+		}
+	}
+
+	return "base" // fallback to default
+}
+
 // GenerateFileFromTemplate generates a file from embedded template (for backward compatibility)
 func GenerateFileFromTemplate(dir, filename, templateName string, naming *NamingConvention, fields []Field) {
 	// Convert Field slice to embedded template data
@@ -418,6 +439,7 @@ func GenerateFileFromTemplate(dir, filename, templateName string, naming *Naming
 	// Execute template with data structure
 	data := struct {
 		*NamingConvention
+		ModuleName            string
 		Fields                []Field
 		HasImageField         bool
 		HasMediaField         bool
@@ -432,6 +454,7 @@ func GenerateFileFromTemplate(dir, filename, templateName string, naming *Naming
 		HasManyToMany         bool
 	}{
 		NamingConvention:      naming,
+		ModuleName:            GetGoModuleName(),
 		Fields:                fields,
 		HasImageField:         HasImageField(fields),
 		HasMediaField:         HasMediaField(fields),

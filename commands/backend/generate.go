@@ -61,8 +61,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		}
 	}
 
-	// Generate field structs
+	// Generate field structs and set module name
 	fieldStructs := utils.NewTemplateData(naming.Model, fields)
+	fieldStructs.ModuleName = getGoModuleName()
 
 	// Generate model
 	utils.GenerateFileFromTemplate(
@@ -202,6 +203,7 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 // addModuleToAppInit adds the module to app/init.go
 func addModuleToAppInit(moduleName string) error {
 	initGoPath := filepath.Join("app", "init.go")
+	goModuleName := getGoModuleName()
 
 	// Check if app/init.go exists
 	if _, err := os.Stat(initGoPath); os.IsNotExist(err) {
@@ -213,8 +215,8 @@ func addModuleToAppInit(moduleName string) error {
 		content := fmt.Sprintf(`package app
 
 import (
-	"base/app/%s"
-	"base/core/module"
+	"%s/app/%s"
+	"%s/core/module"
 )
 
 // AppModules implements module.AppModuleProvider interface
@@ -235,7 +237,7 @@ func (am *AppModules) GetAppModules(deps module.Dependencies) map[string]module.
 func NewAppModules() *AppModules {
 	return &AppModules{}
 }
-`, moduleName, moduleName, moduleName)
+`, goModuleName, moduleName, goModuleName, moduleName, moduleName)
 
 		if err := os.WriteFile(initGoPath, []byte(content), 0644); err != nil {
 			return fmt.Errorf("failed to create app/init.go: %w", err)
@@ -258,7 +260,7 @@ func NewAppModules() *AppModules {
 	}
 
 	// Add import if not exists using the proper AddImport function
-	importLine := fmt.Sprintf("\"base/app/%s\"", moduleName)
+	importLine := fmt.Sprintf("\"%s/app/%s\"", goModuleName, moduleName)
 	contentBytes, importAdded := utils.AddImport([]byte(contentStr), importLine)
 	if importAdded {
 		contentStr = string(contentBytes)
@@ -283,6 +285,25 @@ func NewAppModules() *AppModules {
 	}
 
 	return nil
+}
+
+// getGoModuleName reads the module name from go.mod
+func getGoModuleName() string {
+	content, err := os.ReadFile("go.mod")
+	if err != nil {
+		return "base" // fallback to default
+	}
+
+	// Parse first line: "module <name>"
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module"))
+		}
+	}
+
+	return "base" // fallback to default
 }
 
 // detectBackendDir finds the backend directory in the current working directory

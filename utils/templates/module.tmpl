@@ -1,14 +1,14 @@
 package {{.PackageName}}
 
 import (
-    "base/app/models"
-    "base/core/app/authorization"
-    "base/core/module"
-    "base/core/logger"
-    "base/core/router"
-    "base/core/storage"
-    "base/core/emitter"{{if .HasTranslatableFields}}
-    "base/core/translation"{{end}}
+    "{{.ModuleName}}/app/models"
+    "{{.ModuleName}}/core/app/authorization"
+    "{{.ModuleName}}/core/module"
+    "{{.ModuleName}}/core/logger"
+    "{{.ModuleName}}/core/router"
+    "{{.ModuleName}}/core/storage"
+    "{{.ModuleName}}/core/emitter"{{if .HasTranslatableFields}}
+    "{{.ModuleName}}/core/translation"{{end}}
     "errors"
 
     "gorm.io/gorm"

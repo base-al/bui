@@ -6,12 +6,12 @@ import (
     "mime/multipart"
 
     "gorm.io/gorm"
-    "base/core/types"
-    "base/core/emitter"
-    "base/core/storage"
-    "base/core/logger"
-    "base/app/models"{{if .HasTranslatableFields}}
-    "base/core/translation"
+    "{{.ModuleName}}/core/types"
+    "{{.ModuleName}}/core/emitter"
+    "{{.ModuleName}}/core/storage"
+    "{{.ModuleName}}/core/logger"
+    "{{.ModuleName}}/app/models"{{if .HasTranslatableFields}}
+    "{{.ModuleName}}/core/translation"
     "reflect"
     "strings"{{end}}
     "{{.PackageName}}/validators"
