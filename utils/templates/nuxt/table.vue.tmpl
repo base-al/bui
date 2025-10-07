@@ -107,7 +107,9 @@ const getActionItems = (item: {{.Model}}) => [
   ],
 ]
 
-const onRowClick = (row: {{.Model}}) => {
-  emit('view', row)
+const onRowClick = (row: any) => {
+  // UTable @select emits the full row object with original data
+  const item = row.original || row
+  emit('view', item)
 }
 </script>
