@@ -356,15 +356,32 @@ func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOr
     // Apply sorting
     s.applySorting(query, sortBy, sortOrder)
 
-    // Don't preload relationships for list response (faster)
-    // query = (&models.{{.Model}}{}).Preload(query)
+    // Preload media relationships for list response
+    {{- range .Fields}}
+    {{- if .IsMedia}}
+    query = query.Preload("{{.Name}}")
+    {{- end}}
+    {{- end}}
 
     // Execute query
     if err := query.Find(&items).Error; err != nil {
-        s.Logger.Error("failed to get {{toLower .Plural}}", 
+        s.Logger.Error("failed to get {{toLower .Plural}}",
             logger.String("error", err.Error()))
         return nil, err
     }
+
+    // Manually preload polymorphic File relationships for each media item
+    {{- range .Fields}}
+    {{- if .IsMedia}}
+    for _, item := range items {
+        if item.{{.Name}} != nil {
+            if err := s.DB.Model(item.{{.Name}}).Association("File").Find(&item.{{.Name}}.File); err != nil {
+                s.Logger.Error("failed to preload media file", logger.String("error", err.Error()))
+            }
+        }
+    }
+    {{- end}}
+    {{- end}}
 
     {{if .HasTranslatableFields}}// Load translations for all items
     if err := s.loadTranslationsForItems(items); err != nil {

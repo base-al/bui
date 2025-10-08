@@ -23,6 +23,7 @@
 import { computed, h, resolveComponent } from 'vue'
 import type { {{.Model}} } from '../types/{{.ModelSnake}}'
 import type { TableColumn } from '@nuxt/ui'
+import TranslationField from '@@/app/components/translation/TranslationField.vue'
 
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
@@ -58,6 +59,16 @@ const columns: TableColumn<{{.Model}}>[] = [
 {{range .Fields}}{{if .ShowInTable}}  {
     accessorKey: '{{.JSONName}}',
     header: '{{.Label}}',
+{{- if .IsTranslation}}
+    cell: ({ row }) => {
+      return h(TranslationField, {
+        field: '{{.JSONName}}',
+        value: row.original.{{.JSONName}},
+        modelId: row.original.id,
+        modelType: '{{$.ModelSnake}}',
+      })
+    }
+{{- end}}
   },
 {{end}}{{end}}  {
     accessorKey: 'created_at',

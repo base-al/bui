@@ -138,11 +138,18 @@ const resetForm = () => {
 {{end}}{{end}}  }
 }
 
+// Helper to extract string from translation field
+const getStringValue = (field: any): string => {
+  if (typeof field === 'string') return field
+  if (typeof field === 'object' && field?.original) return field.original
+  return ''
+}
+
 // Watch for item prop changes
 watch(() => props.item, (item) => {
   if (item) {
     form.value = {
-{{range .Fields}}{{if .ShowInForm}}      {{if .IsMedia}}{{.MediaFKJSONName}}: item.{{.MediaFKJSONName}}{{else}}{{.JSONName}}: item.{{.JSONName}}{{end}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
+{{range .Fields}}{{if .ShowInForm}}      {{if .IsMedia}}{{.MediaFKJSONName}}: item.{{.JSONName}}?.id || item.{{.MediaFKJSONName}}{{else if .IsTranslation}}{{.JSONName}}: getStringValue(item.{{.JSONName}}){{else}}{{.JSONName}}: item.{{.JSONName}}{{end}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
 {{end}}{{end}}    }
   } else {
     resetForm()

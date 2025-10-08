@@ -48,7 +48,20 @@
         <div class="space-y-4">
 {{range .Fields}}{{if .ShowInDetail}}          <div>
             <label class="text-sm text-gray-600 dark:text-gray-400">{{.Label}}</label>
+{{- if .IsTranslation}}
+            <TranslationField
+              field="{{.JSONName}}"
+              :value="item.{{.JSONName}}"
+              :model-id="item.id"
+              model-type="{{$.ModelSnake}}"
+              label-class="text-base font-medium"
+              @translations-updated="handleTranslationUpdate"
+            />
+{{- else if .IsMedia}}
+            <TableMediaField :value="item.{{.JSONName}}" />
+{{- else}}
             <p class="text-base font-medium">{{`{{ item.`}}{{.JSONName}}{{` }}`}}</p>
+{{- end}}
           </div>
 {{end}}{{end}}        </div>
       </UCard>
@@ -117,6 +130,8 @@ import { ref, onMounted } from 'vue'
 import { use{{.Plural}}Store } from '~/modules/{{.PluralSnake}}/stores/{{.PluralSnake}}'
 import type { Update{{.Model}}Input } from '~/modules/{{.PluralSnake}}/types/{{.ModelSnake}}'
 import {{.Model}}FormModal from '~/modules/{{.PluralSnake}}/components/{{.Model}}FormModal.vue'
+import TranslationField from '@@/app/components/translation/TranslationField.vue'
+import TableMediaField from '@@/app/components/media/TableMediaField.vue'
 
 definePageMeta({
   layout: 'default',
@@ -193,6 +208,15 @@ const confirmDelete = async () => {
     })
   } finally {
     deleting.value = false
+  }
+}
+
+const handleTranslationUpdate = async (field: string, translations: Record<string, string>) => {
+  // Refresh the item to get updated translations
+  try {
+    item.value = await {{.VarPlural}}Store.fetch{{.Model}}(id.value)
+  } catch (error: any) {
+    console.error('Failed to refresh item after translation update:', error)
   }
 }
 

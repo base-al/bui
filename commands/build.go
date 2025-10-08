@@ -159,7 +159,7 @@ func generateSwaggerDocsForBuild(cmd *mamba.Command, backendDir string) {
 	}
 
 	// Generate swagger docs
-	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./docs", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swag", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
 	swagCmd.Dir = backendDir
 	swagCmd.Stdout = os.Stdout
 	swagCmd.Stderr = os.Stderr

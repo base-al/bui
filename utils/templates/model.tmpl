@@ -256,6 +256,13 @@ type {{.Model}}SelectOption struct {
     Name string `json:"name"` {{- if $nameField }}// From {{$nameField}} field{{- else if $titleField }}// From {{$titleField}} field{{- else }}// Display name{{- end }}
 }
 
+// MediaListView represents a simplified media object for list responses
+type MediaListView struct {
+    Type string `json:"type"`
+    Name string `json:"name"`
+    URL  string `json:"url"`
+}
+
 // {{.Model}}ListResponse represents the response for list operations (optimized for performance)
 type {{.Model}}ListResponse struct {
     Id        uint           `json:"id"`
@@ -277,10 +284,10 @@ type {{.Model}}ListResponse struct {
     {{- end }}
     {{- end }}
     {{- end}}
-    {{- /* Include media fields in list response */}}
+    {{- /* Include simplified media fields in list response */}}
     {{- range .Fields}}
     {{- if .IsMedia }}
-    {{.Name}} *media.Media `json:"{{.JSONName}}"`
+    {{.Name}} *MediaListView `json:"{{.JSONName}}"`
     {{- end }}
     {{- end}}
     {{- /* Include file attachments in list response */}}
@@ -437,7 +444,18 @@ func (m *{{.Model}}) ToListResponse() *{{.Model}}ListResponse {
         {{- end}}
     }
 
-    {{- /* Media fields are already included via relationship objects section above */}}
+    {{- /* Populate simplified media fields */}}
+    {{- range .Fields}}
+    {{- if .IsMedia }}
+    if m.{{.Name}} != nil && m.{{.Name}}.File != nil {
+        response.{{.Name}} = &MediaListView{
+            Type: m.{{.Name}}.Type,
+            Name: m.{{.Name}}.Name,
+            URL:  m.{{.Name}}.File.URL,
+        }
+    }
+    {{- end }}
+    {{- end}}
 
     return response
 }

@@ -70,12 +70,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { TableColumn, ContextMenuItem } from '@nuxt/ui'
 import { use{{.Plural}}Store } from '~/modules/{{.PluralSnake}}/stores/{{.PluralSnake}}'
 import type { {{.Model}}, Create{{.Model}}Input, Update{{.Model}}Input } from '~/modules/{{.PluralSnake}}/types/{{.ModelSnake}}'
 import {{.Model}}FormModal from '~/modules/{{.PluralSnake}}/components/{{.Model}}FormModal.vue'
+import TranslationField from '@@/app/components/translation/TranslationField.vue'
+import TableMediaField from '@@/app/components/media/TableMediaField.vue'
 
 definePageMeta({
   layout: 'default',
@@ -96,6 +98,22 @@ const columns: TableColumn<{{.Model}}>[] = [
 {{range .Fields}}{{if .ShowInTable}}  {
     accessorKey: '{{.JSONName}}',
     header: '{{.Label}}',
+{{- if .IsTranslation}}
+    cell: ({ row }) => {
+      return h(TranslationField, {
+        field: '{{.JSONName}}',
+        value: row.original.{{.JSONName}},
+        modelId: row.original.id,
+        modelType: '{{$.ModelSnake}}',
+      })
+    }
+{{- else if .IsMedia}}
+    cell: ({ row }) => {
+      return h(TableMediaField, {
+        value: row.original.{{.JSONName}},
+      })
+    }
+{{- end}}
   },
 {{end}}{{end}}  {
     accessorKey: 'created_at',

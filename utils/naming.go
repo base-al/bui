@@ -124,6 +124,7 @@ type Field struct {
 	IsMediaFK      bool   // True for auto-generated FK fields for media (e.g., ImageId field)
 	MediaFKField   string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
 	MediaFKJSONName string // JSON name for media FK field (e.g., "image_id" for "Image" field)
+	IsTranslation  bool   // True for translation.Field fields
 }
 
 // ParseField creates a properly structured Field from a field definition string
@@ -191,6 +192,7 @@ func ParseField(fieldDef string) Field {
 		field.JSONTag = ToSnakeCase(fieldName)
 		field.JSONName = ToSnakeCase(fieldName)
 		field.GORMTag = `gorm:"foreignKey:ModelId;references:Id"`
+		field.IsTranslation = true
 	}
 
 	field.GORM = field.GORMTag
