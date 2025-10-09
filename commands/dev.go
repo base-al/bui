@@ -1,11 +1,13 @@
 package commands
 
 import (
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/base-go/mamba"
 )
@@ -82,14 +84,17 @@ func runDev(cmd *mamba.Command, args []string) {
 		if backendDir != "." {
 			backendCmd.Dir = backendDir
 		}
-		backendCmd.Stdout = os.Stdout
-		backendCmd.Stderr = os.Stderr
+		// Suppress backend output during startup
+		backendCmd.Stdout = nil
+		backendCmd.Stderr = nil
 
 		if err := backendCmd.Start(); err != nil {
 			cmd.PrintError("Error starting backend: " + err.Error())
 		} else {
 			processes = append(processes, backendCmd)
-			cmd.PrintSuccess("Backend server started (http://localhost:8000)")
+			// Wait a bit for backend to initialize
+			waitForBackend(cmd)
+			cmd.PrintSuccess("Backend server ready (http://localhost:8000)")
 		}
 	}
 
@@ -100,14 +105,17 @@ func runDev(cmd *mamba.Command, args []string) {
 		if frontendDir != "." {
 			frontendCmd.Dir = frontendDir
 		}
-		frontendCmd.Stdout = os.Stdout
-		frontendCmd.Stderr = os.Stderr
+		// Suppress frontend output during startup
+		frontendCmd.Stdout = nil
+		frontendCmd.Stderr = nil
 
 		if err := frontendCmd.Start(); err != nil {
 			cmd.PrintError("Error starting frontend: " + err.Error())
 		} else {
 			processes = append(processes, frontendCmd)
-			cmd.PrintSuccess("Frontend server started (http://localhost:3030)")
+			// Wait a bit for frontend to initialize
+			waitForFrontend(cmd)
+			cmd.PrintSuccess("Frontend server ready (http://localhost:3030)")
 		}
 	}
 
@@ -164,6 +172,32 @@ func findDirWithSuffix(suffix string) string {
 		}
 	}
 	return ""
+}
+
+// waitForBackend waits for the backend server to be ready
+func waitForBackend(cmd *mamba.Command) {
+	client := &http.Client{Timeout: 1 * time.Second}
+	for i := 0; i < 50; i++ {
+		resp, err := client.Get("http://localhost:8000/health")
+		if err == nil && resp.StatusCode == 200 {
+			resp.Body.Close()
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// waitForFrontend waits for the frontend server to be ready
+func waitForFrontend(cmd *mamba.Command) {
+	client := &http.Client{Timeout: 1 * time.Second}
+	for i := 0; i < 50; i++ {
+		resp, err := client.Get("http://localhost:3030")
+		if err == nil {
+			resp.Body.Close()
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 }
 
 // generateSwaggerDocs generates Swagger documentation for the backend
