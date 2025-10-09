@@ -66,10 +66,9 @@
               placeholder="Select {{.LabelLower}}"
             />
           </UFormField>
-{{else if eq .FormType "checkbox"}}          <UFormField>
-            <UCheckbox
+{{else if eq .FormType "checkbox"}}          <UFormField label="{{.Label}}">
+            <USwitch
               v-model="form.{{.JSONName}}"
-              label="{{.Label}}"
             />
           </UFormField>
 {{else if eq .FormType "number"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>

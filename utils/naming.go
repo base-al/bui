@@ -117,14 +117,15 @@ type Field struct {
 	IsUnique   bool
 
 	// Special types
-	IsImage        bool
-	IsFile         bool
-	IsAttachment   bool
-	IsMedia        bool
-	IsMediaFK      bool   // True for auto-generated FK fields for media (e.g., ImageId field)
-	MediaFKField   string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
+	IsImage         bool
+	IsFile          bool
+	IsAttachment    bool
+	IsMedia         bool
+	IsMediaFK       bool   // True for auto-generated FK fields for media (e.g., ImageId field)
+	MediaFKField    string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
 	MediaFKJSONName string // JSON name for media FK field (e.g., "image_id" for "Image" field)
-	IsTranslation  bool   // True for translation.Field fields
+	MediaType       string // Media type filter: "image", "video", "audio", or empty for all types
+	IsTranslation   bool   // True for translation.Field fields
 
 	// Select/enum fields
 	IsSelect   bool     // True for select fields with predefined options
@@ -177,6 +178,29 @@ func ParseField(fieldDef string) Field {
 				field.Options[i] = strings.TrimSpace(field.Options[i])
 			}
 		}
+		return field
+	}
+
+	// Handle media fields (e.g., thumbnail:media:image or featured:media)
+	if fieldType == "media" {
+		foreignKeyField := field.Name + "Id"
+		field.JSONTag = ToSnakeCase(fieldName)
+		field.JSONName = ToSnakeCase(fieldName)
+		field.GORMTag = fmt.Sprintf(`gorm:"foreignKey:%s"`, foreignKeyField)
+		field.Type = "*media.Media"
+		field.IsMedia = true
+		field.MediaFKField = foreignKeyField
+		field.MediaFKJSONName = ToSnakeCase(foreignKeyField)
+
+		// Check for media type filter (e.g., media:image)
+		if len(parts) > 2 {
+			mediaType := strings.ToLower(strings.TrimSpace(parts[2]))
+			if mediaType == "image" || mediaType == "video" || mediaType == "audio" {
+				field.MediaType = mediaType
+			}
+		}
+
+		field.GORM = field.GORMTag
 		return field
 	}
 
