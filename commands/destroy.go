@@ -53,10 +53,13 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 
 	cmd.PrintWarning("Destroying module: " + naming.Model + " (backend + frontend)")
 
+	// Detect project structure
+	backendDir, frontendDir := detectProjectDirs()
+
 	// Destroy backend
 	backendPaths := []string{
-		filepath.Join("app", "models", naming.ModelSnake+".go"),
-		filepath.Join("app", naming.DirName),
+		filepath.Join(backendDir, "app", "models", naming.ModelSnake+".go"),
+		filepath.Join(backendDir, "app", naming.DirName),
 	}
 
 	backendDeleted := 0
@@ -73,8 +76,8 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 
 	// Destroy frontend
 	frontendPaths := []string{
-		filepath.Join("app", "modules", naming.PluralSnake),
-		filepath.Join("app", "pages", "app", naming.PluralKebab),
+		filepath.Join(frontendDir, "app", "modules", naming.PluralSnake),
+		filepath.Join(frontendDir, "app", "pages", "app", naming.PluralKebab),
 	}
 
 	frontendDeleted := 0
@@ -102,6 +105,49 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 	if frontendDeleted > 0 {
 		cmd.PrintSuccess("Frontend module destroyed: " + naming.Model)
 	}
+}
+
+// detectProjectDirs detects backend and frontend directories
+func detectProjectDirs() (backend, frontend string) {
+	// Check if we're in project root with separate backend/frontend dirs
+	entries, err := os.ReadDir(".")
+	if err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+			// Look for *-api or *-backend directories
+			if filepath.Ext(name) == "" && (contains(name, "-api") || contains(name, "-backend") || name == "backend" || name == "api") {
+				// Check if it has app/ directory
+				if _, err := os.Stat(filepath.Join(name, "app")); err == nil {
+					backend = name
+				}
+			}
+			// Look for *-app or *-frontend directories
+			if filepath.Ext(name) == "" && (contains(name, "-app") || contains(name, "-frontend") || name == "frontend" || name == "app") {
+				// Check if it has app/ directory
+				if _, err := os.Stat(filepath.Join(name, "app")); err == nil {
+					frontend = name
+				}
+			}
+		}
+	}
+
+	// If not found, assume current directory
+	if backend == "" {
+		backend = "."
+	}
+	if frontend == "" {
+		frontend = "."
+	}
+
+	return backend, frontend
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+		(len(s) > len(substr) && (s[:len(substr)+1] == substr+"-" || s[len(s)-len(substr)-1:] == "-"+substr)))
 }
 
 func destroyBackend(cmd *mamba.Command, args []string) {
