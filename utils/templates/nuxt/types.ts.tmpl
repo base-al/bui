@@ -13,6 +13,20 @@ export interface {{.Model}} {
     id: number
     {{.RelationDisplayField}}: string
   }
+{{else if eq .Relationship "has_many"}}
+  // {{.Name}} - has_many relationship
+  {{.JSONName}}?: Array<{
+    id: number
+    [key: string]: any
+  }>
+{{else if eq .Relationship "many_to_many"}}
+  // {{.Name}} - many_to_many relationship
+  {{.JSONName}}?: Array<{
+    id: number
+    name?: string
+    title?: string
+    [key: string]: any
+  }>
 {{end}}{{end}}
   // Timestamps
   created_at: string
@@ -24,6 +38,7 @@ export interface {{.Model}} {
 export interface Create{{.Model}}Input {
 {{range .Fields}}{{if not .IsRelation}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}{{if not .IsRequired}}?{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
 {{else if eq .Relationship "belongs_to"}}  {{.JSONName}}{{if not .IsRequired}}?{{end}}: number
+{{else if eq .Relationship "many_to_many"}}  {{.JSONName}}{{if not .IsRequired}}?{{end}}: number[]
 {{end}}{{end}}}
 
 export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}

@@ -22,7 +22,20 @@ func Validate{{ .Model }}CreateRequest(req *models.Create{{ .Model }}Request) er
 	}
 
 	// Use Base core validator
-	return validate.Validate(req)
+	if err := validate.Validate(req); err != nil {
+		return err
+	}
+
+	// Validate select fields
+	{{- range .Fields}}
+	{{- if .IsSelect}}
+	if err := validateSelectField("{{.JSONName}}", req.{{.Name}}, []string{ {{range $i, $opt := .Options}}{{if $i}}, {{end}}"{{$opt}}"{{end}} }); err != nil {
+		return err
+	}
+	{{- end}}
+	{{- end}}
+
+	return nil
 }
 
 // Validate{{ .Model }}UpdateRequest validates the update request
@@ -43,13 +56,23 @@ func Validate{{ .Model }}UpdateRequest(req *models.Update{{ .Model }}Request, id
 			{
 				Field:   "id",
 				Tag:     "required",
-				Value:   "0", 
+				Value:   "0",
 				Message: "id cannot be zero",
 			},
 		}
 	}
 
-	// Skip validation for update requests - all fields are optional
+	// Validate select fields (only if provided)
+	{{- range .Fields}}
+	{{- if .IsSelect}}
+	if req.{{.Name}} != "" {
+		if err := validateSelectField("{{.JSONName}}", req.{{.Name}}, []string{ {{range $i, $opt := .Options}}{{if $i}}, {{end}}"{{$opt}}"{{end}} }); err != nil {
+			return err
+		}
+	}
+	{{- end}}
+	{{- end}}
+
 	return nil
 }
 
@@ -71,4 +94,38 @@ func ValidateID(id uint) error {
 		}
 	}
 	return nil
+}
+
+// validateSelectField validates if a value is in the allowed options
+func validateSelectField(field string, value string, allowedOptions []string) error {
+	if value == "" {
+		return nil // Empty values are allowed (handled by required tag)
+	}
+
+	for _, option := range allowedOptions {
+		if value == option {
+			return nil
+		}
+	}
+
+	return validator.ValidationErrors{
+		{
+			Field:   field,
+			Tag:     "oneof",
+			Value:   value,
+			Message: "must be one of: " + joinOptions(allowedOptions),
+		},
+	}
+}
+
+// joinOptions joins options with commas for error messages
+func joinOptions(options []string) string {
+	result := ""
+	for i, opt := range options {
+		if i > 0 {
+			result += ", "
+		}
+		result += opt
+	}
+	return result
 }

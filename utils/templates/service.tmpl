@@ -325,7 +325,7 @@ func (s *{{.Service}}) GetById(id uint) (*models.{{.Model}}, error) {
 }
 
 
-func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOrder *string) (*types.PaginatedResponse, error) {
+func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOrder *string, filters map[string]interface{}) (*types.PaginatedResponse, error) {
     var items []*models.{{.Model}}
     var total int64
 
@@ -340,9 +340,20 @@ func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOr
 		limit = &defaultLimit
 	}
 
+    // Apply filters for foreign keys
+    if filters != nil {
+        {{- range .Fields}}
+        {{- if and .IsRelation (eq .Relationship "belongs_to")}}
+        if val, ok := filters["{{.JSONName}}"]; ok {
+            query = query.Where("{{.JSONName}} = ?", val)
+        }
+        {{- end}}
+        {{- end}}
+    }
+
     // Get total count
     if err := query.Count(&total).Error; err != nil {
-        s.Logger.Error("failed to count {{toLower .Plural}}", 
+        s.Logger.Error("failed to count {{toLower .Plural}}",
             logger.String("error", err.Error()))
         return nil, err
     }

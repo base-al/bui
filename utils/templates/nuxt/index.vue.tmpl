@@ -73,6 +73,7 @@
 import { ref, onMounted, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { TableColumn, ContextMenuItem } from '@nuxt/ui'
+import { UBadge } from '#components'
 import { use{{.Plural}}Store } from '~/modules/{{.PluralSnake}}/stores/{{.PluralSnake}}'
 import type { {{.Model}}, Create{{.Model}}Input, Update{{.Model}}Input } from '~/modules/{{.PluralSnake}}/types/{{.ModelSnake}}'
 import {{.Model}}FormModal from '~/modules/{{.PluralSnake}}/components/{{.Model}}FormModal.vue'
@@ -86,7 +87,7 @@ definePageMeta({
 const {{.VarPlural}}Store = use{{.Plural}}Store()
 const { {{.VarPlural}}, loading, pagination } = storeToRefs({{.VarPlural}}Store)
 const toast = useToast()
-const { formatDate } = useDateFormat()
+const { formatDate, formatDateTime } = useDateFormat()
 
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)
@@ -114,6 +115,24 @@ const columns: TableColumn<{{.Model}}>[] = [
         value: row.original.{{.JSONName}},
       })
     }
+{{- else if .IsSelect}}
+    cell: ({ row }) => {
+      const value = row.original.{{.JSONName}}
+      if (!value) return h('span', { class: 'text-gray-400' }, '-')
+
+      // Color cycling based on option index
+      const options = [{{range $i, $opt := .Options}}{{if $i}}, {{end}}'{{$opt}}'{{end}}]
+      const colors: Array<'primary' | 'success' | 'warning' | 'error'> = ['primary', 'success', 'warning', 'error']
+      const colorIndex = options.indexOf(value) % colors.length
+      const color = colors[colorIndex >= 0 ? colorIndex : 0]
+
+      return h(UBadge, {
+        label: value,
+        color: color,
+        variant: 'soft',
+        size: 'sm'
+      })
+    }
 {{- else if eq .FormType "date"}}
     cell: ({ row }) => {
       return formatDate(row.original.{{.JSONName}})
@@ -121,6 +140,51 @@ const columns: TableColumn<{{.Model}}>[] = [
 {{- else if eq .FormType "datetime"}}
     cell: ({ row }) => {
       return formatDateTime(row.original.{{.JSONName}})
+    }
+{{- else if and .IsRelation (eq .Relationship "has_many")}}
+    cell: ({ row }) => {
+      const items = row.original.{{.JSONName}}
+      const count = items?.length || 0
+      if (count === 0) return h('span', { class: 'text-gray-400' }, '0')
+
+      return h('a', {
+        href: '/app/{{.RelationModelKebab}}?{{$.ModelSnake}}_id=' + row.original.id,
+        class: 'text-primary hover:underline cursor-pointer flex items-center gap-1',
+        onClick: (e: Event) => {
+          e.stopPropagation()
+          navigateTo('/app/{{.RelationModelKebab}}?{{$.ModelSnake}}_id=' + row.original.id)
+        }
+      }, [
+        h('span', {}, count.toString()),
+        h('i', { class: 'i-lucide-external-link text-xs' })
+      ])
+    }
+{{- else if and .IsRelation (eq .Relationship "many_to_many")}}
+    cell: ({ row }) => {
+      const items = row.original.{{.JSONName}}
+      if (!items || items.length === 0) return h('span', { class: 'text-gray-400' }, '-')
+
+      // Show max 3 chips, then "+N more"
+      const maxVisible = 3
+      const visibleItems = items.slice(0, maxVisible)
+      const remainingCount = items.length - maxVisible
+
+      return h('div', { class: 'flex items-center gap-1 flex-wrap' }, [
+        ...visibleItems.map((item: any) =>
+          h(UBadge, {
+            label: item.name || item.title || `#${item.id}`,
+            color: 'primary',
+            variant: 'soft',
+            size: 'xs'
+          })
+        ),
+        remainingCount > 0 ? h(UBadge, {
+          label: `+${remainingCount}`,
+          color: 'neutral',
+          variant: 'soft',
+          size: 'xs'
+        }) : null
+      ].filter(Boolean))
     }
 {{- end}}
   },
@@ -138,6 +202,57 @@ const columns: TableColumn<{{.Model}}>[] = [
           navigateTo('/app/{{.RelationModelKebab}}/' + {{.RelationObjectName}}.id)
         }
       }, {{.RelationObjectName}}.{{.RelationDisplayField}})
+    }
+  },
+{{else if and .IsRelation (eq .Relationship "has_many")}}  {
+    accessorKey: '{{.JSONName}}',
+    header: '{{.RelationLabel}}',
+    cell: ({ row }) => {
+      const items = row.original.{{.JSONName}}
+      const count = items?.length || 0
+      if (count === 0) return h('span', { class: 'text-gray-400' }, '0')
+
+      return h('a', {
+        href: '/app/{{.RelationModelKebab}}?{{$.ModelSnake}}_id=' + row.original.id,
+        class: 'text-primary hover:underline cursor-pointer flex items-center gap-1',
+        onClick: (e: Event) => {
+          e.stopPropagation()
+          navigateTo('/app/{{.RelationModelKebab}}?{{$.ModelSnake}}_id=' + row.original.id)
+        }
+      }, [
+        h('span', {}, count.toString()),
+        h('i', { class: 'i-lucide-external-link text-xs' })
+      ])
+    }
+  },
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}  {
+    accessorKey: '{{.JSONName}}',
+    header: '{{.RelationLabel}}',
+    cell: ({ row }) => {
+      const items = row.original.{{.JSONName}}
+      if (!items || items.length === 0) return h('span', { class: 'text-gray-400' }, '-')
+
+      // Show max 3 chips, then "+N more"
+      const maxVisible = 3
+      const visibleItems = items.slice(0, maxVisible)
+      const remainingCount = items.length - maxVisible
+
+      return h('div', { class: 'flex items-center gap-1 flex-wrap' }, [
+        ...visibleItems.map((item: any) =>
+          h(UBadge, {
+            label: item.name || item.title || `#${item.id}`,
+            color: 'primary',
+            variant: 'soft',
+            size: 'xs'
+          })
+        ),
+        remainingCount > 0 ? h(UBadge, {
+          label: `+${remainingCount}`,
+          color: 'neutral',
+          variant: 'soft',
+          size: 'xs'
+        }) : null
+      ].filter(Boolean))
     }
   },
 {{end}}{{end}}  {

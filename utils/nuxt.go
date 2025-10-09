@@ -7,24 +7,26 @@ import (
 // NuxtField extends Field with Nuxt/TypeScript specific information
 type NuxtField struct {
 	Field
-	TypeScriptType      string
-	FormType            string
-	FormRows            int
-	ShowInTable         bool
-	ShowInForm          bool
-	ShowInDetail        bool
-	IsFilterable        bool
-	IsSortable          bool
-	IsNullable          bool
-	IsRequired          bool
-	DefaultValue        string
-	Label               string
-	LabelLower          string
+	TypeScriptType       string
+	FormType             string
+	FormRows             int
+	ShowInTable          bool
+	ShowInForm           bool
+	ShowInDetail         bool
+	IsFilterable         bool
+	IsSortable           bool
+	IsNullable           bool
+	IsRequired           bool
+	DefaultValue         string
+	Label                string
+	LabelLower           string
 	RelationLabel        string // For belongs_to: Clean label without "_id" suffix (e.g., "Client" instead of "Client Id")
 	RelationDisplayField string // For belongs_to: Display field of the related model (e.g., "name" for Client)
 	RelationModelPlural  string // Plural form of related model for API calls
 	RelationModelKebab   string // Kebab case for API endpoints
 	RelationObjectName   string // For belongs_to: JSONName with _id suffix removed (e.g., "client" from "client_id")
+	RelationModelSingular string // Singular form of related model (e.g., "comment" for comments hasMany)
+	RelationModelSnake   string // Snake case singular (e.g., "comment" for Comment)
 }
 
 // ConvertToNuxtField converts a Go Field to a NuxtField with TypeScript types
@@ -50,16 +52,45 @@ func ConvertToNuxtField(field Field) NuxtField {
 	}
 
 	// Handle relation-specific fields
-	if field.IsRelation && field.Relationship == "belongs_to" && field.RelatedModel != "" {
-		nf.FormType = "select"
-		nf.RelationModelPlural = ToPlural(field.RelatedModel)
-		nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
-		nf.RelationObjectName = strings.TrimSuffix(field.JSONName, "_id")
-		nf.RelationLabel = ToCapitalCase(nf.RelationObjectName)
-		nf.ShowInForm = false   // Don't show in regular form section, will be handled by relation section
-		nf.ShowInTable = false  // Don't show FK in table, will show relation object instead
-		nf.ShowInDetail = false // Don't show FK in detail, will show relation object instead
-		nf.IsFilterable = true
+	if field.IsRelation && field.RelatedModel != "" {
+		switch field.Relationship {
+		case "belongs_to":
+			nf.FormType = "select"
+			nf.RelationModelPlural = ToPlural(field.RelatedModel)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
+			nf.RelationObjectName = strings.TrimSuffix(field.JSONName, "_id")
+			nf.RelationLabel = ToCapitalCase(nf.RelationObjectName)
+			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
+			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.ShowInForm = false   // Don't show in regular form section, will be handled by relation section
+			nf.ShowInTable = false  // Don't show FK in table, will show relation object instead
+			nf.ShowInDetail = false // Don't show FK in detail, will show relation object instead
+			nf.IsFilterable = true
+
+		case "has_many":
+			// hasMany: show count in table with link
+			nf.RelationModelPlural = ToPlural(field.RelatedModel)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
+			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
+			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.RelationLabel = ToCapitalCase(field.JSONName)
+			nf.ShowInForm = false   // hasMany not shown in form (managed separately)
+			nf.ShowInTable = true   // Show count in table
+			nf.ShowInDetail = true  // Show list in detail view
+			nf.IsFilterable = false
+
+		case "many_to_many":
+			// manyToMany: show chips in table
+			nf.RelationModelPlural = ToPlural(field.RelatedModel)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
+			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
+			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.RelationLabel = ToCapitalCase(field.JSONName)
+			nf.ShowInForm = false   // manyToMany shown in special multi-select
+			nf.ShowInTable = true   // Show chips in table
+			nf.ShowInDetail = true  // Show chips in detail view
+			nf.IsFilterable = false
+		}
 	}
 
 	return nf
@@ -101,6 +132,12 @@ func GetTypeScriptType(goType string) string {
 // GetFormType determines the form input type
 func GetFormType(field Field) string {
 	fieldName := strings.ToLower(field.JSONName)
+
+	// Check for explicit select/radio/checkbox fields (takes priority)
+	if field.IsSelect && len(field.Options) > 0 {
+		// Return the specific select type: "select", "radio", or "checkbox"
+		return field.SelectType
+	}
 
 	// Check for specific field types
 	if field.IsFile || field.IsImage || field.IsAttachment {

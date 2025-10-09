@@ -125,6 +125,11 @@ type Field struct {
 	MediaFKField   string // Foreign key field name for media fields (e.g., "ImageId" for "Image" field)
 	MediaFKJSONName string // JSON name for media FK field (e.g., "image_id" for "Image" field)
 	IsTranslation  bool   // True for translation.Field fields
+
+	// Select/enum fields
+	IsSelect   bool     // True for select fields with predefined options
+	SelectType string   // Type of selection: "select", "radio", "checkbox"
+	Options    []string // Options for select fields (e.g., ["draft", "published", "archived"])
 }
 
 // ParseField creates a properly structured Field from a field definition string
@@ -150,6 +155,30 @@ func ParseField(fieldDef string) Field {
 	field.DBName = field.JSONTag
 	field.Relationship = ""
 	field.IsRelation = false
+
+	// Handle select/radio/checkbox fields (e.g., status:select:draft,published,archived)
+	if fieldType == "select" || fieldType == "radio" || fieldType == "checkbox" {
+		field.IsSelect = true
+		field.SelectType = fieldType // Store which type: "select", "radio", or "checkbox"
+
+		// Checkbox can be array for multiple values
+		if fieldType == "checkbox" {
+			field.Type = "json.RawMessage" // Store as JSON array in DB
+		} else {
+			field.Type = "string" // Store as string in DB for select/radio
+		}
+
+		if len(parts) > 2 {
+			// Split options by comma
+			optionsStr := parts[2]
+			field.Options = strings.Split(optionsStr, ",")
+			// Trim whitespace from each option
+			for i := range field.Options {
+				field.Options[i] = strings.TrimSpace(field.Options[i])
+			}
+		}
+		return field
+	}
 
 	// Handle relationships using alias system
 	if IsRelationshipType(fieldType) {

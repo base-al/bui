@@ -49,6 +49,7 @@ var FieldTypeAliases = []FieldTypeAlias{
 	{"to_many", "many_to_many", "", "relationship"},
 
 	// Date/time aliases
+	{"time", "time.Time", "time.Time", "basic"},
 	{"datetime", "types.DateTime", "types.DateTime", "basic"},
 	{"date", "types.DateTime", "types.DateTime", "basic"},
 	{"timestamp", "types.DateTime", "types.DateTime", "basic"},

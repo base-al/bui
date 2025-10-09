@@ -1,8 +1,10 @@
 <template>
-  <UModal v-model:open="isOpen" :ui="{ content: 'max-w-4xl' }">
-    <template #header>
-      {{`{{ isEdit ? 'Edit `}}{{.Model}}{{`' : 'Create `}}{{.Model}}{{`' }}`}}
-    </template>
+   <UModal 
+  v-model:open="isOpen" 
+  :ui="{ content: 'max-w-6xl' }"
+  :title="isEdit ? 'Edit `{{.Model}}' : 'Create `{{.Model}}'"
+  :description="isEdit ? 'Edit `{{.Model}}' : 'Create `{{.Model}}'"
+  >
     <template #body>
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <!-- Basic Information -->
@@ -35,6 +37,25 @@
               v-model="form.{{.JSONName}}"
               placeholder="Enter {{.LabelLower}}"
               :rows="{{.FormRows}}"
+            />
+          </UFormField>
+{{else if and .IsSelect (eq .SelectType "select")}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
+            <USelect
+              v-model="form.{{.JSONName}}"
+              :items="{{.JSONName}}Options"
+              placeholder="Select {{.LabelLower}}"
+            />
+          </UFormField>
+{{else if and .IsSelect (eq .SelectType "radio")}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
+            <URadioGroup
+              v-model="form.{{.JSONName}}"
+              :items="{{.JSONName}}Options"
+            />
+          </UFormField>
+{{else if and .IsSelect (eq .SelectType "checkbox")}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
+            <UCheckboxGroup
+              v-model="form.{{.JSONName}}"
+              :items="{{.JSONName}}Options"
             />
           </UFormField>
 {{else if eq .FormType "select"}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
@@ -83,6 +104,14 @@
               :items="{{.RelationObjectName}}OptionsFormatted"
               :ui="{ content: 'min-w-fit' }"
               placeholder="Select {{.RelationObjectName}}"
+            />
+          </UFormField>
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}          <UFormField label="{{.RelationLabel}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">
+            <UInputMenu
+              v-model="form.{{.JSONName}}"
+              :items="{{.RelationObjectName}}OptionsFormatted"
+              multiple
+              placeholder="Select {{.RelationLabel}}"
             />
           </UFormField>
 {{end}}{{end}}        </div>
@@ -136,17 +165,35 @@ const isEdit = computed(() => !!props.item)
 
 const form = ref<Create{{.Model}}Input>({
 {{range .Fields}}{{if .ShowInForm}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.DefaultValue}},
-{{else if and .IsRelation (eq .Relationship "belongs_to")}}  {{.JSONName}}: 0,
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}  {{.JSONName}}: undefined as any,
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}  {{.JSONName}}: [],
 {{end}}{{end}}})
 {{range .Fields}}{{if and .IsRelation (eq .Relationship "belongs_to")}}
 const {{.RelationObjectName}}Options = ref<Array<{ id: number; {{.RelationDisplayField}}: string }>>([])
 const {{.RelationObjectName}}OptionsFormatted = computed(() =>
-  {{.RelationObjectName}}Options.value.map(item => ({ label: item.{{.RelationDisplayField}}, value: item.id }))
+  ({{.RelationObjectName}}Options.value || []).map(item => ({ label: item.{{.RelationDisplayField}}, value: item.id }))
 )
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}
+const {{.RelationObjectName}}Options = ref<Array<{ id: number; {{.RelationDisplayField}}: string }>>([])
+const {{.RelationObjectName}}OptionsFormatted = computed(() =>
+  ({{.RelationObjectName}}Options.value || []).map(item => ({ label: item.{{.RelationDisplayField}}, value: item.id }))
+)
+{{end}}{{end}}
+{{range .Fields}}{{if .IsSelect}}
+// Options for {{.Label}} ({{.SelectType}})
+const {{.JSONName}}Options = [
+  {{range .Options}}{ label: '{{.}}', value: '{{.}}' },
+  {{end}}]
 {{end}}{{end}}
 
 const handleSubmit = () => {
-  emit('submit', form.value)
+  // Format datetime-local fields to include seconds for backend
+  const submissionData = { ...form.value }
+{{range .Fields}}{{if eq .FormType "datetime"}}  if (submissionData.{{.JSONName}} && submissionData.{{.JSONName}}.length === 16) {
+    // datetime-local format is "YYYY-MM-DDTHH:MM", add seconds
+    submissionData.{{.JSONName}} = submissionData.{{.JSONName}} + ':00'
+  }
+{{end}}{{end}}  emit('submit', submissionData)
 }
 
 const closeModal = () => {
@@ -157,7 +204,8 @@ const closeModal = () => {
 const resetForm = () => {
   form.value = {
 {{range .Fields}}{{if .ShowInForm}}    {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.DefaultValue}},
-{{else if and .IsRelation (eq .Relationship "belongs_to")}}    {{.JSONName}}: 0,
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}    {{.JSONName}}: undefined as any,
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}    {{.JSONName}}: [],
 {{end}}{{end}}  }
 }
 
@@ -178,6 +226,16 @@ const fetch{{.RelatedModel}}Options = async () => {
     console.error('Failed to fetch {{.RelationObjectName}} options:', error)
   }
 }
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}// Fetch {{.RelationObjectName}} options
+const fetch{{.RelatedModel}}Options = async () => {
+  try {
+    const api = useApi()
+    const response = await api.get<Array<{ id: number; {{.RelationDisplayField}}: string }>>('/{{.RelationModelKebab}}/all')
+    {{.RelationObjectName}}Options.value = response
+  } catch (error) {
+    console.error('Failed to fetch {{.RelationObjectName}} options:', error)
+  }
+}
 {{end}}{{end}}
 
 // Watch for item prop changes
@@ -185,7 +243,8 @@ watch(() => props.item, (item) => {
   if (item) {
     form.value = {
 {{range .Fields}}{{if .ShowInForm}}      {{if .IsMedia}}{{.MediaFKJSONName}}: item.{{.JSONName}}?.id || item.{{.MediaFKJSONName}}{{else if .IsTranslation}}{{.JSONName}}: getStringValue(item.{{.JSONName}}){{else}}{{.JSONName}}: item.{{.JSONName}}{{end}}{{if .IsNullable}} || {{.DefaultValue}}{{end}},
-{{else if and .IsRelation (eq .Relationship "belongs_to")}}      {{.JSONName}}: item.{{.JSONName}} || 0,
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}      {{.JSONName}}: item.{{.JSONName}} || undefined,
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}      {{.JSONName}}: (item.{{.JSONName}} || []).map((rel: any) => rel.id),
 {{end}}{{end}}    }
   } else {
     resetForm()
@@ -194,5 +253,6 @@ watch(() => props.item, (item) => {
 
 onMounted(() => {
 {{range .Fields}}{{if and .IsRelation (eq .Relationship "belongs_to")}}  fetch{{.RelatedModel}}Options()
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}  fetch{{.RelatedModel}}Options()
 {{end}}{{end}}})
 </script>

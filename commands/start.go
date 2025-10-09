@@ -75,7 +75,7 @@ func startApplication(cmd *mamba.Command, args []string) {
 		}
 
 		// Generate swagger docs using swag
-		swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./docs", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+		swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
 		swagCmd.Dir = cwd
 		swagCmd.Stdout = os.Stdout
 		swagCmd.Stderr = os.Stderr
