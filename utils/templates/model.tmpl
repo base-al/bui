@@ -242,9 +242,17 @@ type {{.Model}}ModelResponse struct {
     {{- end }}
     {{- end }}
     {{- if $nameField }}
+    {{- if eq $nameFieldType "translation.Field" }}
+    Name string `json:"name"` // From translation field
+    {{- else }}
     Name {{$nameFieldType}} `json:"name"`
+    {{- end }}
     {{- else if $titleField }}
+    {{- if eq $titleFieldType "translation.Field" }}
+    Title string `json:"title"` // From translation field
+    {{- else }}
     Title {{$titleFieldType}} `json:"title"`
+    {{- end }}
     {{- else }}
     Name string `json:"name"` // Display name
     {{- end }}
@@ -375,7 +383,7 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
     {{- if eq $nameFieldType "translation.Field" }}
     return &{{.Model}}ModelResponse{
         Id:   m.Id,
-        Name: m.{{$nameField}}.String(), // Convert translation field to string
+        Name: m.{{$nameField}}.Original, // Get original value from translation field
     }
     {{- else }}
     return &{{.Model}}ModelResponse{
@@ -387,7 +395,7 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
     {{- if eq $titleFieldType "translation.Field" }}
     return &{{.Model}}ModelResponse{
         Id:    m.Id,
-        Title: m.{{$titleField}}.String(), // Convert translation field to string
+        Title: m.{{$titleField}}.Original, // Get original value from translation field
     }
     {{- else }}
     return &{{.Model}}ModelResponse{
@@ -425,13 +433,13 @@ func (m *{{.Model}}) ToSelectOption() *{{.Model}}SelectOption {
     
     {{- if $nameField }}
     {{- if eq $nameFieldType "translation.Field" }}
-    displayName := m.{{$nameField}}.String() // Convert translation field to string
+    displayName := m.{{$nameField}}.Original // Get original value from translation field
     {{- else }}
     displayName := m.{{$nameField}}
     {{- end }}
     {{- else if $titleField }}
     {{- if eq $titleFieldType "translation.Field" }}
-    displayName := m.{{$titleField}}.String() // Convert translation field to string
+    displayName := m.{{$titleField}}.Original // Get original value from translation field
     {{- else }}
     displayName := m.{{$titleField}}
     {{- end }}
