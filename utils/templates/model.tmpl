@@ -370,20 +370,23 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
     {{- $titleField := "" }}
     {{- $nameFieldType := "" }}
     {{- $titleFieldType := "" }}
+    {{- $firstStringField := "" }}
+    {{- $firstStringFieldType := "" }}
     {{- range .Fields }}
     {{- if not .IsRelation }}
-    {{- if or (eq (toLower .Name) "name") (eq (toLower .Name) "title") }}
+    {{- if or (eq .Type "string") (eq .Type "translation.Field") }}
+    {{- if eq $firstStringField "" }}{{ $firstStringField = .Name }}{{ $firstStringFieldType = .Type }}{{end}}
     {{- if eq (toLower .Name) "name" }}{{ $nameField = .Name }}{{ $nameFieldType = .Type }}{{end}}
     {{- if eq (toLower .Name) "title" }}{{ $titleField = .Name }}{{ $titleFieldType = .Type }}{{end}}
     {{- end }}
     {{- end }}
     {{- end }}
-    
+
     {{- if $nameField }}
     {{- if eq $nameFieldType "translation.Field" }}
     return &{{.Model}}ModelResponse{
         Id:   m.Id,
-        Name: m.{{$nameField}}.Original, // Get original value from translation field
+        Name: m.{{$nameField}}.Original,
     }
     {{- else }}
     return &{{.Model}}ModelResponse{
@@ -395,7 +398,7 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
     {{- if eq $titleFieldType "translation.Field" }}
     return &{{.Model}}ModelResponse{
         Id:    m.Id,
-        Title: m.{{$titleField}}.Original, // Get original value from translation field
+        Title: m.{{$titleField}}.Original,
     }
     {{- else }}
     return &{{.Model}}ModelResponse{
@@ -403,10 +406,22 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
         Title: m.{{$titleField}},
     }
     {{- end }}
+    {{- else if $firstStringField }}
+    {{- if eq $firstStringFieldType "translation.Field" }}
+    return &{{.Model}}ModelResponse{
+        Id:   m.Id,
+        Name: m.{{$firstStringField}}.Original,
+    }
     {{- else }}
     return &{{.Model}}ModelResponse{
         Id:   m.Id,
-        Name: fmt.Sprintf("{{.Model}} #%d", m.Id), // Fallback to ID-based display
+        Name: m.{{$firstStringField}},
+    }
+    {{- end }}
+    {{- else }}
+    return &{{.Model}}ModelResponse{
+        Id:   m.Id,
+        Name: fmt.Sprintf("{{.Model}} #%d", m.Id),
     }
     {{- end }}
 }
@@ -421,38 +436,59 @@ func (m *{{.Model}}) ToSelectOption() *{{.Model}}SelectOption {
     {{- $nameFieldType := "" }}
     {{- $titleFieldType := "" }}
     {{- $firstStringField := "" }}
+    {{- $firstStringFieldType := "" }}
     {{- range .Fields }}
     {{- if not .IsRelation }}
     {{- if or (eq .Type "string") (eq .Type "translation.Field") }}
-    {{- if eq $firstStringField "" }}{{ $firstStringField = .Name }}{{end}}
+    {{- if eq $firstStringField "" }}{{ $firstStringField = .Name }}{{ $firstStringFieldType = .Type }}{{end}}
     {{- if eq (toLower .Name) "name" }}{{ $nameField = .Name }}{{ $nameFieldType = .Type }}{{end}}
     {{- if eq (toLower .Name) "title" }}{{ $titleField = .Name }}{{ $titleFieldType = .Type }}{{end}}
     {{- end }}
     {{- end }}
     {{- end }}
-    
+
     {{- if $nameField }}
     {{- if eq $nameFieldType "translation.Field" }}
-    displayName := m.{{$nameField}}.Original // Get original value from translation field
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: m.{{$nameField}}.Original,
+    }
     {{- else }}
-    displayName := m.{{$nameField}}
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: m.{{$nameField}},
+    }
     {{- end }}
     {{- else if $titleField }}
     {{- if eq $titleFieldType "translation.Field" }}
-    displayName := m.{{$titleField}}.Original // Get original value from translation field
-    {{- else }}
-    displayName := m.{{$titleField}}
-    {{- end }}
-    {{- else if $firstStringField }}
-    displayName := m.{{$firstStringField}} // Using first string field as display name
-    {{- else }}
-    displayName := fmt.Sprintf("{{.Model}} #%d", m.Id) // Fallback to ID-based display
-    {{- end }}
-    
     return &{{.Model}}SelectOption{
         Id:   m.Id,
-        Name: displayName,
+        Name: m.{{$titleField}}.Original,
     }
+    {{- else }}
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: m.{{$titleField}},
+    }
+    {{- end }}
+    {{- else if $firstStringField }}
+    {{- if eq $firstStringFieldType "translation.Field" }}
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: m.{{$firstStringField}}.Original,
+    }
+    {{- else }}
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: m.{{$firstStringField}},
+    }
+    {{- end }}
+    {{- else }}
+    return &{{.Model}}SelectOption{
+        Id:   m.Id,
+        Name: fmt.Sprintf("{{.Model}} #%d", m.Id),
+    }
+    {{- end }}
 }
 
 // ToListResponse converts the model to a list response (without preloaded relationships for fast listing)
