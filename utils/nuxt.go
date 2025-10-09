@@ -53,15 +53,22 @@ func ConvertToNuxtField(field Field) NuxtField {
 
 	// Handle relation-specific fields
 	if field.IsRelation && field.RelatedModel != "" {
+		// Extract model name from package.Model format (e.g., "users.User" -> "User")
+		relatedModelName := field.RelatedModel
+		if strings.Contains(relatedModelName, ".") {
+			parts := strings.Split(relatedModelName, ".")
+			relatedModelName = parts[len(parts)-1]
+		}
+
 		switch field.Relationship {
 		case "belongs_to":
 			nf.FormType = "select"
-			nf.RelationModelPlural = ToPlural(field.RelatedModel)
-			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
+			nf.RelationModelPlural = ToPlural(relatedModelName)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(relatedModelName))
 			nf.RelationObjectName = strings.TrimSuffix(field.JSONName, "_id")
 			nf.RelationLabel = ToCapitalCase(nf.RelationObjectName)
-			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
-			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.RelationModelSingular = strings.ToLower(relatedModelName)
+			nf.RelationModelSnake = ToSnakeCase(relatedModelName)
 			nf.ShowInForm = false   // Don't show in regular form section, will be handled by relation section
 			nf.ShowInTable = false  // Don't show FK in table, will show relation object instead
 			nf.ShowInDetail = false // Don't show FK in detail, will show relation object instead
@@ -69,10 +76,10 @@ func ConvertToNuxtField(field Field) NuxtField {
 
 		case "has_many":
 			// hasMany: show count in table with link
-			nf.RelationModelPlural = ToPlural(field.RelatedModel)
-			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
-			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
-			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.RelationModelPlural = ToPlural(relatedModelName)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(relatedModelName))
+			nf.RelationModelSingular = strings.ToLower(relatedModelName)
+			nf.RelationModelSnake = ToSnakeCase(relatedModelName)
 			nf.RelationLabel = ToCapitalCase(field.JSONName)
 			nf.ShowInForm = false   // hasMany not shown in form (managed separately)
 			nf.ShowInTable = true   // Show count in table
@@ -81,10 +88,10 @@ func ConvertToNuxtField(field Field) NuxtField {
 
 		case "many_to_many":
 			// manyToMany: show chips in table
-			nf.RelationModelPlural = ToPlural(field.RelatedModel)
-			nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
-			nf.RelationModelSingular = strings.ToLower(field.RelatedModel)
-			nf.RelationModelSnake = ToSnakeCase(field.RelatedModel)
+			nf.RelationModelPlural = ToPlural(relatedModelName)
+			nf.RelationModelKebab = ToKebabCase(ToPlural(relatedModelName))
+			nf.RelationModelSingular = strings.ToLower(relatedModelName)
+			nf.RelationModelSnake = ToSnakeCase(relatedModelName)
 			nf.RelationLabel = ToCapitalCase(field.JSONName)
 			nf.ShowInForm = false   // manyToMany shown in special multi-select
 			nf.ShowInTable = true   // Show chips in table
