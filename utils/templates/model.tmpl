@@ -271,7 +271,12 @@ type {{.Model}}ListResponse struct {
     {{- range .Fields}}
     {{- if eq .Relationship "belongs_to" }}
     {{- if .RelatedModel }}
-    {{.RelatedModel}} *{{.RelatedModel}}ModelResponse `json:"{{ToCamelCase .RelatedModel}},omitempty"`
+    {{- if hasSuffix .Name "Id" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    {{$objectName}} *{{.RelatedModel}}ModelResponse `json:"{{ToSnakeCase $objectName}},omitempty"`
+    {{- else }}
+    {{.Name}} *{{.RelatedModel}}ModelResponse `json:"{{.JSONName}},omitempty"`
+    {{- end }}
     {{- end }}
     {{- end }}
     {{- end}}
@@ -462,9 +467,16 @@ func (m *{{.Model}}) ToListResponse() *{{.Model}}ListResponse {
     {{- range .Fields}}
     {{- if eq .Relationship "belongs_to" }}
     {{- if .RelatedModel }}
-    if m.{{.RelatedModel}} != nil {
-        response.{{.RelatedModel}} = m.{{.RelatedModel}}.ToModelResponse()
+    {{- if hasSuffix .Name "Id" }}
+    {{- $objectName := TrimIdSuffix .Name }}
+    if m.{{$objectName}} != nil {
+        response.{{$objectName}} = m.{{$objectName}}.ToModelResponse()
     }
+    {{- else }}
+    if m.{{.Name}} != nil {
+        response.{{.Name}} = m.{{.Name}}.ToModelResponse()
+    }
+    {{- end }}
     {{- end }}
     {{- end }}
     {{- end}}
