@@ -72,7 +72,7 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
             page_size: number
             total_pages: number
           }
-        }>(`/{{.PluralSnake}}?${queryString}`)
+        }>(`/{{.PluralKebab}}?${queryString}`)
 
         this.{{.VarPlural}} = Array.isArray(response.data) ? response.data : []
         this.pagination = {
@@ -95,7 +95,7 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
 
       try {
         const api = useApi()
-        const response = await api.get<{{.Model}}>(`/{{.PluralSnake}}/${id}`)
+        const response = await api.get<{{.Model}}>(`/{{.PluralKebab}}/${id}`)
         this.current{{.Model}} = response
         return response
       } catch (error: any) {
@@ -114,7 +114,7 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
         const api = useApi()
         const cleanData: any = { ...data }
 
-        const response = await api.post<{{.Model}}>('/{{.PluralSnake}}', cleanData)
+        const response = await api.post<{{.Model}}>('/{{.PluralKebab}}', cleanData)
 
         this.{{.VarPlural}}.unshift(response)
         return response
@@ -134,7 +134,7 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
         const api = useApi()
         const cleanData: any = { ...data }
 
-        const response = await api.put<{{.Model}}>(`/{{.PluralSnake}}/${id}`, cleanData)
+        const response = await api.put<{{.Model}}>(`/{{.PluralKebab}}/${id}`, cleanData)
 
         const index = this.{{.VarPlural}}.findIndex(p => p.id === id)
         if (index !== -1) {
@@ -160,7 +160,7 @@ export const use{{.Plural}}Store = defineStore('{{.PluralSnake}}', {
 
       try {
         const api = useApi()
-        await api.delete(`/{{.PluralSnake}}/${id}`)
+        await api.delete(`/{{.PluralKebab}}/${id}`)
 
         this.{{.VarPlural}} = this.{{.VarPlural}}.filter(p => p.id !== id)
 
