@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/base-go/mamba"
@@ -151,24 +152,32 @@ func updateGoImports(dir, projectName string) error {
 		// Also update Swagger documentation comments in main.go
 		if strings.HasSuffix(path, "/main.go") || strings.HasSuffix(path, "/Main.go") {
 			titleCase := strings.ToUpper(projectName[:1]) + projectName[1:]
+			lowerName := strings.ToLower(projectName)
 
-			// Update @title
-			newContent = strings.ReplaceAll(newContent, "// @title Negenet API", fmt.Sprintf("// @title %s API", titleCase))
-			newContent = strings.ReplaceAll(newContent, "// @title Base API", fmt.Sprintf("// @title %s API", titleCase))
+			// Use regex to replace any API name (more flexible than hardcoded names)
+			// Update @title - match any word before " API"
+			titleRegex := regexp.MustCompile(`// @title (\w+) API`)
+			newContent = titleRegex.ReplaceAllString(newContent, fmt.Sprintf("// @title %s API", titleCase))
 
-			// Update @description
-			newContent = strings.ReplaceAll(newContent, "// @description This is the API documentation for Negenet", fmt.Sprintf("// @description This is the API documentation for %s", titleCase))
-			newContent = strings.ReplaceAll(newContent, "// @description This is the API documentation for Base", fmt.Sprintf("// @description This is the API documentation for %s", titleCase))
+			// Update @description - match "for [Name]"
+			descRegex := regexp.MustCompile(`// @description This is the API documentation for (\w+)`)
+			newContent = descRegex.ReplaceAllString(newContent, fmt.Sprintf("// @description This is the API documentation for %s", titleCase))
 
-			// Update @contact info
-			newContent = strings.ReplaceAll(newContent, "// @contact.name Negenet Team", fmt.Sprintf("// @contact.name %s Team", titleCase))
-			newContent = strings.ReplaceAll(newContent, "// @contact.name Base Team", fmt.Sprintf("// @contact.name %s Team", titleCase))
-			newContent = strings.ReplaceAll(newContent, "// @contact.email info@negenet.com", fmt.Sprintf("// @contact.email info@%s.com", strings.ToLower(projectName)))
-			newContent = strings.ReplaceAll(newContent, "// @contact.email info@example.com", fmt.Sprintf("// @contact.email info@%s.com", strings.ToLower(projectName)))
-			newContent = strings.ReplaceAll(newContent, "// @contact.url https://negenet.com", fmt.Sprintf("// @contact.url https://%s.com", strings.ToLower(projectName)))
-			newContent = strings.ReplaceAll(newContent, "// @contact.url https://example.com", fmt.Sprintf("// @contact.url https://%s.com", strings.ToLower(projectName)))
-			newContent = strings.ReplaceAll(newContent, "// @termsOfService https://negenet.com/terms", fmt.Sprintf("// @termsOfService https://%s.com/terms", strings.ToLower(projectName)))
-			newContent = strings.ReplaceAll(newContent, "// @termsOfService https://example.com/terms", fmt.Sprintf("// @termsOfService https://%s.com/terms", strings.ToLower(projectName)))
+			// Update @contact.name - match "[Name] Team"
+			contactNameRegex := regexp.MustCompile(`// @contact\.name (\w+) Team`)
+			newContent = contactNameRegex.ReplaceAllString(newContent, fmt.Sprintf("// @contact.name %s Team", titleCase))
+
+			// Update @contact.email - match "info@[domain].com"
+			contactEmailRegex := regexp.MustCompile(`// @contact\.email info@(\w+)\.com`)
+			newContent = contactEmailRegex.ReplaceAllString(newContent, fmt.Sprintf("// @contact.email info@%s.com", lowerName))
+
+			// Update @contact.url - match "https://[domain].com"
+			contactUrlRegex := regexp.MustCompile(`// @contact\.url https://(\w+)\.com`)
+			newContent = contactUrlRegex.ReplaceAllString(newContent, fmt.Sprintf("// @contact.url https://%s.com", lowerName))
+
+			// Update @termsOfService - match "https://[domain].com/terms"
+			termsRegex := regexp.MustCompile(`// @termsOfService https://(\w+)\.com/terms`)
+			newContent = termsRegex.ReplaceAllString(newContent, fmt.Sprintf("// @termsOfService https://%s.com/terms", lowerName))
 		}
 
 		// Only write if content changed

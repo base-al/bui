@@ -174,9 +174,9 @@ const {{.RelationObjectName}}OptionsFormatted = computed(() =>
   ({{.RelationObjectName}}Options.value || []).map(item => ({ label: item.{{.RelationDisplayField}}, value: item.id }))
 )
 {{else if and .IsRelation (eq .Relationship "many_to_many")}}
-const {{.RelationObjectName}}Options = ref<Array<{ id: number; {{.RelationDisplayField}}: string }>>([])
+const {{.RelationObjectName}}Options = ref<Array<{ id: number; {{if .RelationDisplayField}}{{.RelationDisplayField}}{{else}}name{{end}}: string }>>([])
 const {{.RelationObjectName}}OptionsFormatted = computed(() =>
-  ({{.RelationObjectName}}Options.value || []).map(item => ({ label: item.{{.RelationDisplayField}}, value: item.id }))
+  ({{.RelationObjectName}}Options.value || []).map(item => ({ label: item.{{if .RelationDisplayField}}{{.RelationDisplayField}}{{else}}name{{end}}, value: item.id }))
 )
 {{end}}{{end}}
 {{range .Fields}}{{if .IsSelect}}
@@ -230,7 +230,7 @@ const fetch{{.RelatedModel}}Options = async () => {
 const fetch{{.RelatedModel}}Options = async () => {
   try {
     const api = useApi()
-    const response = await api.get<Array<{ id: number; {{.RelationDisplayField}}: string }>>('/{{.RelationModelKebab}}/all')
+    const response = await api.get<Array<{ id: number; {{if .RelationDisplayField}}{{.RelationDisplayField}}{{else}}name{{end}}: string }>>('/{{.RelationModelKebab}}/all')
     {{.RelationObjectName}}Options.value = response
   } catch (error) {
     console.error('Failed to fetch {{.RelationObjectName}} options:', error)
