@@ -84,9 +84,9 @@ func runDev(cmd *mamba.Command, args []string) {
 		if backendDir != "." {
 			backendCmd.Dir = backendDir
 		}
-		// Suppress backend output during startup
-		backendCmd.Stdout = nil
-		backendCmd.Stderr = nil
+		// Pipe output to terminal
+		backendCmd.Stdout = os.Stdout
+		backendCmd.Stderr = os.Stderr
 
 		if err := backendCmd.Start(); err != nil {
 			cmd.PrintError("Error starting backend: " + err.Error())
@@ -105,9 +105,9 @@ func runDev(cmd *mamba.Command, args []string) {
 		if frontendDir != "." {
 			frontendCmd.Dir = frontendDir
 		}
-		// Suppress frontend output during startup
-		frontendCmd.Stdout = nil
-		frontendCmd.Stderr = nil
+		// Pipe output to terminal
+		frontendCmd.Stdout = os.Stdout
+		frontendCmd.Stderr = os.Stderr
 
 		if err := frontendCmd.Start(); err != nil {
 			cmd.PrintError("Error starting frontend: " + err.Error())
