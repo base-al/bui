@@ -95,6 +95,13 @@ func ValidateID(id uint) error {
 	}
 	return nil
 }
+{{- $hasSelectFields := false }}
+{{- range .Fields}}
+{{- if and .IsSelect (ne .SelectType "checkbox")}}
+{{- $hasSelectFields = true }}
+{{- end}}
+{{- end}}
+{{- if $hasSelectFields }}
 
 // validateSelectField validates if a value is in the allowed options
 func validateSelectField(field string, value string, allowedOptions []string) error {
@@ -129,3 +136,4 @@ func joinOptions(options []string) string {
 	}
 	return result
 }
+{{- end}}

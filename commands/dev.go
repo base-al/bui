@@ -113,24 +113,24 @@ func runDev(cmd *mamba.Command, args []string) {
 	}
 
 	if len(processes) == 0 {
-		fmt.Println("No servers started")
+		cmd.PrintError("No servers started")
 		os.Exit(1)
 	}
 
-	fmt.Println("\nServers running. Press Ctrl+C to stop.")
+	cmd.PrintSuccess("All servers running. Press Ctrl+C to stop.")
 
 	// Wait for interrupt signal
 	<-sigChan
 
 	// Stop all processes
-	fmt.Println("\nStopping servers...")
+	cmd.PrintInfo("Stopping servers...")
 	for _, p := range processes {
 		if p.Process != nil {
 			p.Process.Kill()
 		}
 	}
 
-	fmt.Println("All servers stopped")
+	cmd.PrintSuccess("All servers stopped")
 }
 
 func dirExists(path string) bool {

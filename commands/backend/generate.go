@@ -73,6 +73,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		naming,
 		fieldStructs.Fields,
 	)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated app/models/%s.go", naming.ModelSnake))
+	}
 
 	// Generate service
 	utils.GenerateFileFromTemplate(
@@ -82,6 +85,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		naming,
 		fieldStructs.Fields,
 	)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated app/%s/service.go", naming.DirName))
+	}
 
 	// Generate controller
 	utils.GenerateFileFromTemplate(
@@ -91,6 +97,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		naming,
 		fieldStructs.Fields,
 	)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated app/%s/controller.go", naming.DirName))
+	}
 
 	// Generate module
 	utils.GenerateFileFromTemplate(
@@ -100,6 +109,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		naming,
 		fieldStructs.Fields,
 	)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated app/%s/module.go", naming.DirName))
+	}
 
 	// Generate validator
 	utils.GenerateFileFromTemplate(
@@ -109,6 +121,9 @@ func generateBackendModule(cmd *mamba.Command, args []string) {
 		naming,
 		fieldStructs.Fields,
 	)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated app/%s/validator.go", naming.DirName))
+	}
 
 	// Generate tests - disabled for now, will be added in future
 	// if err := utils.GenerateTests(naming, fieldStructs); err != nil {

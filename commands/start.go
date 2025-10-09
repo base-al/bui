@@ -27,20 +27,20 @@ func init() {
 	startCmd.Flags().BoolVarP(&docs, "docs", "d", false, "Generate Swagger documentation")
 }
 
-func startApplication(cmd *mamba.Command, args []string) {
+func startApplication(c *mamba.Command, args []string) {
 	// Get the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		fmt.Printf("Error getting working directory: %v\n", err)
+		c.PrintError(fmt.Sprintf("Failed to get working directory: %v", err))
 		return
 	}
 
 	// Check if we're in a Base project by looking for main.go
 	mainPath := filepath.Join(cwd, "main.go")
 	if _, err := os.Stat(mainPath); os.IsNotExist(err) {
-		fmt.Println("Error: Base project structure not found.")
-		fmt.Println("Make sure you are in the root directory of your Base project.")
-		fmt.Println("Expected to find main.go at:", mainPath)
+		c.PrintError("Base project structure not found")
+		c.PrintInfo("Make sure you are in the root directory of your Base project")
+		c.PrintInfo(fmt.Sprintf("Expected to find main.go at: %s", mainPath))
 		return
 	}
 
@@ -48,48 +48,49 @@ func startApplication(cmd *mamba.Command, args []string) {
 	whichCmd := exec.Command("which", "go")
 	goPathBytes, err := whichCmd.Output()
 	if err != nil {
-		fmt.Printf("Error: Go executable not found: %v\n", err)
-		fmt.Println("Please ensure Go is properly installed and in your PATH")
+		c.PrintError("Go executable not found")
+		c.PrintInfo("Please ensure Go is properly installed and in your PATH")
 		return
 	}
 	goPath := strings.TrimSpace(string(goPathBytes))
 
 	// Run go mod tidy to ensure dependencies are up to date
-	fmt.Println("Ensuring dependencies are up to date...")
+	c.PrintInfo("Ensuring dependencies are up to date...")
 	tidyCmd := exec.Command(goPath, "mod", "tidy")
 	tidyCmd.Dir = cwd
 	if err := tidyCmd.Run(); err != nil {
-		fmt.Printf("Warning: Failed to run go mod tidy: %v\n", err)
+		c.PrintWarning(fmt.Sprintf("Failed to run go mod tidy: %v", err))
 	}
 
 	if docs {
 		// Ensure swag is installed
 		if _, err := exec.LookPath("swag"); err != nil {
-			fmt.Println("Installing swag...")
+			c.PrintInfo("Installing swag...")
 			installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
 			installCmd.Stdout = os.Stdout
 			installCmd.Stderr = os.Stderr
 			if err := installCmd.Run(); err != nil {
-				fmt.Printf("Warning: Failed to install swag: %v\n", err)
+				c.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
 			}
 		}
 
 		// Generate swagger docs using swag
+		c.PrintInfo("Generating Swagger documentation...")
 		swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
 		swagCmd.Dir = cwd
 		swagCmd.Stdout = os.Stdout
 		swagCmd.Stderr = os.Stderr
 
 		if err := swagCmd.Run(); err != nil {
-			fmt.Printf("Warning: Failed to generate docs: %v\n", err)
-			fmt.Println("Continuing without auto-generated documentation...")
+			c.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
+			c.PrintInfo("Continuing without auto-generated documentation...")
+		} else {
+			c.PrintSuccess("Swagger documentation will be available at /swagger/")
 		}
-
-		fmt.Println("Swagger documentation will be available at /swagger/ when server starts")
 	}
 
 	// Run normally
-	fmt.Println("Starting the Base application server...")
+	c.PrintInfo("Starting the Base application server...")
 
 	mainCmd := exec.Command(goPath, "run", "main.go")
 	mainCmd.Stdout = os.Stdout
@@ -104,7 +105,7 @@ func startApplication(cmd *mamba.Command, args []string) {
 	mainCmd.Env = env
 
 	if err := mainCmd.Run(); err != nil {
-		fmt.Printf("Error running application: %v\n", err)
+		c.PrintError(fmt.Sprintf("Failed to run application: %v", err))
 		return
 	}
 }

@@ -12,6 +12,9 @@ import (
 	"github.com/base-go/mamba"
 )
 
+// Verbose is set by root command
+var Verbose *bool
+
 var GenerateFrontendCmd = &mamba.Command{
 	Use:     "frontend [name] [field:type...]",
 	Aliases: []string{"fe", "ui"},
@@ -57,8 +60,11 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 
 	for _, dir := range dirs {
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-			fmt.Printf("Error creating directory %s: %v\n", dir, err)
+			cmd.PrintError(fmt.Sprintf("Failed to create directory %s: %v", dir, err))
 			return
+		}
+		if Verbose != nil && *Verbose {
+			cmd.PrintInfo(fmt.Sprintf("Created directory: %s", dir))
 		}
 	}
 
@@ -104,8 +110,6 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		DisplayField:     displayField,
 	}
 
-	fmt.Printf("Generating module: %s\n", naming.Model)
-
 	// Generate module.config.ts
 	if err := utils.GenerateNuxtFile(
 		moduleBasePath,
@@ -113,10 +117,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/module.config.ts.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating module.config.ts: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate module.config.ts: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated module.config.ts\n")
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess("Generated module.config.ts")
+	}
 
 	// Generate types file
 	if err := utils.GenerateNuxtFile(
@@ -125,10 +131,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/types.ts.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating types: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate types: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated types/%s.ts\n", naming.ModelSnake)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated types/%s.ts", naming.ModelSnake))
+	}
 
 	// Generate store
 	if err := utils.GenerateNuxtFile(
@@ -137,10 +145,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/store.ts.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating store: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate store: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated stores/%s.ts\n", naming.PluralSnake)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated stores/%s.ts", naming.PluralSnake))
+	}
 
 	// Generate form modal component
 	if err := utils.GenerateNuxtFile(
@@ -149,10 +159,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/form-modal.vue.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating form modal: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate form modal: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated components/%sFormModal.vue\n", naming.Model)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated components/%sFormModal.vue", naming.Model))
+	}
 
 	// Generate formatters utils
 	if err := utils.GenerateNuxtFile(
@@ -161,10 +173,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/formatters.ts.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating formatters: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate formatters: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated utils/formatters.ts\n")
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess("Generated utils/formatters.ts")
+	}
 
 	// Generate index page
 	if err := utils.GenerateNuxtFile(
@@ -173,10 +187,12 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/index.vue.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating index page: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate index page: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated pages/app/%s/index.vue\n", naming.PluralKebab)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated pages/app/%s/index.vue", naming.PluralKebab))
+	}
 
 	// Generate detail page
 	if err := utils.GenerateNuxtFile(
@@ -185,17 +201,16 @@ func generateFrontendModule(cmd *mamba.Command, args []string) {
 		"nuxt/detail.vue.tmpl",
 		templateData,
 	); err != nil {
-		fmt.Printf("Error generating detail page: %v\n", err)
+		cmd.PrintError(fmt.Sprintf("Failed to generate detail page: %v", err))
 		return
 	}
-	fmt.Printf("✅ Generated pages/app/%s/[id].vue\n", naming.PluralKebab)
+	if Verbose != nil && *Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated pages/app/%s/[id].vue", naming.PluralKebab))
+	}
 
-	fmt.Printf("\nSuccessfully generated module: %s\n", naming.Model)
-	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("  1. Module automatically discovered via app/modules/index.ts\n")
-	fmt.Printf("  2. Navigate to /app/%s to see your new module\n", naming.PluralKebab)
-	fmt.Printf("  3. Ensure backend API endpoints available at /api/%s\n", naming.PluralSnake)
-	fmt.Printf("\nTip: Use 'bui g frontend %s' to regenerate or 'bui d frontend %s' to remove\n", naming.ModelSnake, naming.ModelSnake)
+	if Verbose == nil || !*Verbose {
+		cmd.PrintSuccess(fmt.Sprintf("Generated frontend module: %s", naming.Model))
+	}
 }
 
 // detectFrontendDir finds the frontend directory in the current working directory
