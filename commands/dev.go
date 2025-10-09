@@ -169,36 +169,28 @@ func findDirWithSuffix(suffix string) string {
 
 // generateSwaggerDocs generates Swagger documentation for the backend
 func generateSwaggerDocs(cmd *mamba.Command, backendDir string) {
-	cmd.PrintInfo("Generating Swagger documentation...")
-
 	// Find go executable
 	goPath, err := exec.LookPath("go")
 	if err != nil {
-		cmd.PrintWarning("Go executable not found, skipping swagger generation")
 		return
 	}
 
 	// Ensure swag is installed
 	if _, err := exec.LookPath("swag"); err != nil {
-		cmd.PrintInfo("Installing swag...")
 		installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
-		installCmd.Stdout = os.Stdout
-		installCmd.Stderr = os.Stderr
+		// Suppress output
 		if err := installCmd.Run(); err != nil {
-			cmd.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
 			return
 		}
 	}
 
-	// Generate swagger docs
-	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+	// Generate swagger docs (suppress output)
+	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false", "--quiet")
 	swagCmd.Dir = backendDir
-	swagCmd.Stdout = os.Stdout
-	swagCmd.Stderr = os.Stderr
+	// Don't pipe output to suppress all swagger logs
 
 	if err := swagCmd.Run(); err != nil {
-		cmd.PrintWarning(fmt.Sprintf("Failed to generate swagger docs: %v", err))
-	} else {
-		cmd.PrintSuccess("Swagger documentation generated at /swagger/")
+		// Silently fail - not critical for dev
+		return
 	}
 }
