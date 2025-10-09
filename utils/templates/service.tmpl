@@ -145,13 +145,13 @@ func (s *{{.Model}}Service) Update(id uint, req *models.Update{{.Model}}Request)
     {{- if eq .Type "*storage.Attachment" }}
     // {{.Name}} attachment is handled via separate endpoint
     {{- else if eq .Relationship "belongs_to" }}
-    // For foreign key relationships
+    // For foreign key relationships (nullable)
     {{- if hasSuffix .Name "Id" }}
-    if req.{{.Name}} != 0 {
+    if req.{{.Name}} != nil {
         item.{{.Name}} = req.{{.Name}}
     }
     {{- else }}
-    if req.{{.Name}}Id != 0 {
+    if req.{{.Name}}Id != nil {
         item.{{.Name}}Id = req.{{.Name}}Id
     }
     {{- end }}
@@ -377,7 +377,7 @@ func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOr
     // Preload belongs_to relationships for list response
     {{- range .Fields}}
     {{- if and .IsRelation (eq .Relationship "belongs_to")}}
-    query = query.Preload("{{.RelatedModel}}")
+    query = query.Preload("{{.Name}}")
     {{- end}}
     {{- end}}
 

@@ -33,9 +33,9 @@ type {{.Model}} struct {
     {{- range .Fields}}
     {{- if eq .Relationship "belongs_to" }}
     {{- if hasSuffix .Name "Id" }}
-	{{.Name}} uint `json:"{{.JSONName}},omitempty"`
+	{{.Name}} *uint `json:"{{.JSONName}},omitempty"`
     {{- else }}
-	{{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
+	{{.Name}}Id *uint `json:"{{.JSONName}}_id,omitempty"`
     {{- end }}
     {{- end}}
     {{- end}}
@@ -128,9 +128,9 @@ type Create{{.Model}}Request struct {
     {{- /* Skip many-to-many fields in CreateRequest - they need PostId which doesn't exist yet */}}
     {{- else if and (eq .Relationship "belongs_to") (not .IsMedia) }}
     {{- if hasSuffix .Name "Id" }}
-    {{.Name}} uint `json:"{{.JSONName}}"`
+    {{.Name}} *uint `json:"{{.JSONName}},omitempty"`
     {{- else }}
-    {{.Name}}Id uint `json:"{{.JSONName}}_id"`
+    {{.Name}}Id *uint `json:"{{.JSONName}}_id,omitempty"`
     {{- end }}
     {{- else if .IsMedia }}
     {{.MediaFKField}} *uint `json:"{{ToSnakeCase .MediaFKField}}"` // Media ID
@@ -167,9 +167,9 @@ type Update{{.Model}}Request struct {
     {{- end }}
     {{- else if and (eq .Relationship "belongs_to") (not .IsMedia) }}
     {{- if hasSuffix .Name "Id" }}
-    {{.Name}} uint `json:"{{.JSONName}},omitempty"`
+    {{.Name}} *uint `json:"{{.JSONName}},omitempty"`
     {{- else }}
-    {{.Name}}Id uint `json:"{{.JSONName}}_id,omitempty"`
+    {{.Name}}Id *uint `json:"{{.JSONName}}_id,omitempty"`
     {{- end }}
     {{- else if .IsMedia }}
     {{.MediaFKField}} *uint `json:"{{ToSnakeCase .MediaFKField}},omitempty"` // Media ID
