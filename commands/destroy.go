@@ -6,6 +6,7 @@ import (
 
 	"github.com/base-al/bui/utils"
 	"github.com/base-go/mamba"
+	"github.com/base-go/mamba/pkg/interactive"
 )
 
 var destroyCmd = &mamba.Command{
@@ -53,6 +54,13 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 
 	cmd.PrintWarning("Destroying module: " + naming.Model + " (backend + frontend)")
 
+	// Ask for confirmation
+	confirmed, err := interactive.AskConfirm("Are you sure you want to destroy this module?", false)
+	if err != nil || !confirmed {
+		cmd.PrintInfo("Operation cancelled")
+		return
+	}
+
 	// Detect project structure
 	backendDir, frontendDir := detectProjectDirs()
 
@@ -63,12 +71,17 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 	}
 
 	backendDeleted := 0
+	if Verbose {
+		cmd.PrintHeader("Destroying Backend Files")
+	}
 	for _, path := range backendPaths {
 		if _, err := os.Stat(path); err == nil {
 			if err := os.RemoveAll(path); err != nil {
 				cmd.PrintError("Failed to delete: " + path)
 			} else {
-				cmd.PrintInfo("Deleted: " + path)
+				if Verbose {
+					cmd.PrintBullet(path)
+				}
 				backendDeleted++
 			}
 		}
@@ -81,12 +94,17 @@ func destroyBothModules(cmd *mamba.Command, args []string) {
 	}
 
 	frontendDeleted := 0
+	if Verbose {
+		cmd.PrintHeader("Destroying Frontend Files")
+	}
 	for _, path := range frontendPaths {
 		if _, err := os.Stat(path); err == nil {
 			if err := os.RemoveAll(path); err != nil {
 				cmd.PrintError("Failed to delete: " + path)
 			} else {
-				cmd.PrintInfo("Deleted: " + path)
+				if Verbose {
+					cmd.PrintBullet(path)
+				}
 				frontendDeleted++
 			}
 		}
@@ -156,6 +174,13 @@ func destroyBackend(cmd *mamba.Command, args []string) {
 
 	cmd.PrintWarning("Destroying backend module: " + naming.Model)
 
+	// Ask for confirmation
+	confirmed, err := interactive.AskConfirm("Are you sure you want to destroy this backend module?", false)
+	if err != nil || !confirmed {
+		cmd.PrintInfo("Operation cancelled")
+		return
+	}
+
 	// Paths to delete
 	paths := []string{
 		filepath.Join("app", "models", naming.ModelSnake+".go"),
@@ -188,6 +213,13 @@ func destroyFrontend(cmd *mamba.Command, args []string) {
 	naming := utils.NewNamingConvention(moduleName)
 
 	cmd.PrintWarning("Destroying frontend module: " + naming.Model)
+
+	// Ask for confirmation
+	confirmed, err := interactive.AskConfirm("Are you sure you want to destroy this frontend module?", false)
+	if err != nil || !confirmed {
+		cmd.PrintInfo("Operation cancelled")
+		return
+	}
 
 	// Paths to delete
 	paths := []string{

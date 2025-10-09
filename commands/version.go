@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/base-al/bui/version"
@@ -13,7 +12,9 @@ var versionCmd = &mamba.Command{
 	Short: "Print version information",
 	Run: func(cmd *mamba.Command, args []string) {
 		info := version.GetBuildInfo()
-		fmt.Println(info.String())
+
+		// Print version info
+		cmd.PrintInfo(info.String())
 
 		// Check for updates
 		release, err := version.CheckLatestVersion()
@@ -25,24 +26,25 @@ var versionCmd = &mamba.Command{
 		if version.HasUpdate(info.Version, latestVersion) {
 			// Check if it's a major version upgrade
 			if isMajorVersionUpgrade(info.Version, latestVersion) {
-				fmt.Printf("\nMAJOR VERSION AVAILABLE: %s -> %s\n", info.Version, latestVersion)
+				cmd.PrintWarning("\nMAJOR VERSION AVAILABLE: " + info.Version + " -> " + latestVersion)
 				if strings.HasPrefix(latestVersion, "2.") && strings.HasPrefix(info.Version, "1.") {
-					fmt.Println("NEW in v2.0.0: Automatic Relationship Detection!")
-					fmt.Println("   Fields ending with '_id' now auto-generate GORM relationships")
+					cmd.PrintInfo("NEW in v2.0.0: Automatic Relationship Detection!")
+					cmd.PrintInfo("   Fields ending with '_id' now auto-generate GORM relationships")
 				}
-				fmt.Println("This is a major version with potential breaking changes.")
-				fmt.Printf("Changelog: %s\n", release.HTMLURL)
-				fmt.Println("\nTo upgrade: bui upgrade")
+				cmd.PrintWarning("This is a major version with potential breaking changes.")
+				cmd.PrintInfo("Changelog: " + release.HTMLURL)
+				cmd.PrintInfo("\nTo upgrade: bui upgrade")
 			} else {
-				fmt.Print(version.FormatUpdateMessage(
+				updateMsg := version.FormatUpdateMessage(
 					info.Version,
 					latestVersion,
 					release.HTMLURL,
 					release.Body,
-				))
+				)
+				cmd.PrintWarning(updateMsg)
 			}
 		} else {
-			fmt.Printf("\nYou're up to date! Using the latest version %s\n", info.Version)
+			cmd.PrintSuccess("\nYou're up to date! Using the latest version " + info.Version)
 		}
 	},
 }

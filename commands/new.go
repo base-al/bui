@@ -546,33 +546,35 @@ func printSuccessMessage(cmd *mamba.Command, projectName string) {
 	frontendDir := projectName + "-app"
 
 	cmd.PrintInfo("")
-	cmd.PrintInfo("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	cmd.PrintSuccess(fmt.Sprintf("Project '%s' created successfully!", projectName))
-	cmd.PrintInfo("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Next steps:")
+
+	cmd.PrintHeader("Next Steps")
 	cmd.PrintInfo("")
-	cmd.PrintInfo(fmt.Sprintf("  cd %s", projectName))
+
+	cmd.PrintInfo(fmt.Sprintf("Navigate to project: cd %s", projectName))
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Backend setup:")
-	cmd.PrintInfo(fmt.Sprintf("  cd %s", backendDir))
-	cmd.PrintInfo("  cp .env.sample .env")
-	cmd.PrintInfo("  # Edit .env with your database credentials")
-	cmd.PrintInfo("  go mod tidy")
-	cmd.PrintInfo("  bui start")
+
+	cmd.PrintHeader("Backend Setup")
+	cmd.PrintBullet(fmt.Sprintf("cd %s", backendDir))
+	cmd.PrintBullet("cp .env.sample .env")
+	cmd.PrintBullet("Edit .env with your database credentials")
+	cmd.PrintBullet("go mod tidy")
+	cmd.PrintBullet("bui start")
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Frontend setup (in another terminal):")
-	cmd.PrintInfo(fmt.Sprintf("  cd %s", frontendDir))
-	cmd.PrintInfo("  bun install")
-	cmd.PrintInfo("  bun dev")
+
+	cmd.PrintHeader("Frontend Setup")
+	cmd.PrintBullet(fmt.Sprintf("cd %s", frontendDir))
+	cmd.PrintBullet("bun install")
+	cmd.PrintBullet("bun dev")
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Or start both servers at once:")
-	cmd.PrintInfo("  bui dev")
+
+	cmd.PrintHeader("Quick Start")
+	cmd.PrintBullet("Start both servers: bui dev")
+	cmd.PrintBullet("Generate module: bui g product name:string price:float")
 	cmd.PrintInfo("")
-	cmd.PrintInfo("Generate your first module:")
-	cmd.PrintInfo("  bui g product name:string price:float")
-	cmd.PrintInfo("")
-	cmd.PrintInfo("Happy coding!")
+
+	cmd.PrintSuccess("Happy coding!")
 	cmd.PrintInfo("")
 }
 

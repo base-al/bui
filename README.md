@@ -14,6 +14,24 @@ A modern, unified CLI tool for Base Stack development. Generate backend modules 
 - **Modern UX**: Powered by Mamba for enhanced terminal features (colors, spinners, progress bars)
 - **Smart Conventions**: Automatically infers field types and relationships
 
+## Prerequisites
+
+Before installing Bui, ensure you have:
+
+### Backend Development
+- **Go 1.21+** - [Install Go](https://golang.org/doc/install)
+- **Image Processing Libraries** (required for media handling):
+  - **macOS**: `brew install webp libheif`
+  - **Ubuntu/Debian**: `sudo apt install libwebp-dev libheif-dev`
+- **PostgreSQL** (or another database)
+
+### Frontend Development
+- **Node.js 18+** - [Install Node.js](https://nodejs.org/)
+- **Bun** (recommended) - Fast JavaScript runtime:
+  - **macOS/Linux**: `curl -fsSL https://bun.sh/install | bash`
+  - **Windows**: `powershell -c "irm bun.sh/install.ps1 | iex"`
+  - **Verify**: `bun --version`
+
 ## Installation
 
 ```bash
@@ -23,6 +41,11 @@ curl -fsSL https://raw.githubusercontent.com/base-al/bui/refs/heads/main/install
 Installation modes:
 - **Non-interactive** (piped): Installs to `~/.base/bin` (requires adding to PATH)
 - **Interactive** (download & run): Choose local or global (`/usr/local/bin` with sudo)
+
+**Alternative - Install via Go:**
+```bash
+go install github.com/base-al/bui@latest
+```
 
 ### Download Binary
 

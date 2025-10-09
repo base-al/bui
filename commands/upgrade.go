@@ -12,6 +12,7 @@ import (
 
 	"github.com/base-al/bui/version"
 	"github.com/base-go/mamba"
+	"github.com/base-go/mamba/pkg/spinner"
 )
 
 var upgradeCmd = &mamba.Command{
@@ -32,8 +33,16 @@ func runUpgrade(cmd *mamba.Command, args []string) {
 		currentVersion = "unknown"
 	}
 
-	cmd.PrintInfo("Checking for updates...")
-	latestVersion, err := getLatestVersion()
+	var latestVersion string
+	err := spinner.WithSpinner("Checking for updates...", func() error {
+		version, err := getLatestVersion()
+		if err != nil {
+			return err
+		}
+		latestVersion = version
+		return nil
+	})
+
 	if err != nil {
 		cmd.PrintWarning(fmt.Sprintf("Failed to check latest version: %v", err))
 		latestVersion = "unknown"
@@ -59,12 +68,8 @@ func runUpgrade(cmd *mamba.Command, args []string) {
 		os.Exit(1)
 	}
 
-	cmd.PrintInfo("Upgrading Bui CLI...")
-	cmd.PrintInfo(fmt.Sprintf("Installation: %s", exePath))
-	cmd.PrintInfo("")
-
-	// Use install script
-	cmd.PrintInfo("Downloading and running install script...")
+	cmd.PrintHeader("Upgrading Bui CLI")
+	cmd.PrintInfo(fmt.Sprintf("Installation path: %s", exePath))
 	cmd.PrintInfo("")
 
 	// Determine the install script command based on OS
@@ -83,11 +88,12 @@ func runUpgrade(cmd *mamba.Command, args []string) {
 	installCmd.Stderr = os.Stderr
 	installCmd.Stdin = os.Stdin
 
+	cmd.PrintInfo("Running installation script...")
 	if err := installCmd.Run(); err != nil {
 		cmd.PrintError("Failed to run install script")
 		cmd.PrintInfo("")
-		cmd.PrintInfo("Try manually running:")
-		cmd.PrintInfo("  curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
+		cmd.PrintHeader("Manual Installation")
+		cmd.PrintBullet("curl -sSL https://raw.githubusercontent.com/base-al/bui/main/install.sh | bash")
 		os.Exit(1)
 	}
 

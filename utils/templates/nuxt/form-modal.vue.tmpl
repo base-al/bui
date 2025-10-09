@@ -43,7 +43,7 @@
             <USelect
               v-model="form.{{.JSONName}}"
               :items="{{.JSONName}}Options"
-              placeholder="Select {{.LabelLower}}"
+              placeholder="Select {{.Label}}"
             />
           </UFormField>
 {{else if and .IsSelect (eq .SelectType "radio")}}          <UFormField label="{{.Label}}" {{if .IsRequired}}required{{end}}>
@@ -63,7 +63,7 @@
               v-model="form.{{.JSONName}}"
               :items="{{.JSONName}}OptionsFormatted"
               :ui="{ content: 'min-w-fit' }"
-              placeholder="Select {{.LabelLower}}"
+              placeholder="Select {{.Label}}"
             />
           </UFormField>
 {{else if eq .FormType "checkbox"}}          <UFormField label="{{.Label}}">
@@ -97,12 +97,12 @@
             />
           </UFormField>
 {{end}}
-{{else if and .IsRelation (eq .Relationship "belongs_to")}}          <UFormField label="{{.RelationLabel}}" {{if .IsRequired}}required{{end}}>
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}          <UFormField label="{{.RelationLabel}}">
             <USelect
               v-model="form.{{.JSONName}}"
               :items="{{.RelationObjectName}}OptionsFormatted"
               :ui="{ content: 'min-w-fit' }"
-              placeholder="Select {{.RelationObjectName}}"
+              placeholder="Select {{.RelationLabel}}"
             />
           </UFormField>
 {{else if and .IsRelation (eq .Relationship "many_to_many")}}          <UFormField label="{{.RelationLabel}}" {{if .IsRequired}}required{{end}} class="sm:col-span-2">

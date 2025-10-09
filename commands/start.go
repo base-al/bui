@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/base-go/mamba"
+	"github.com/base-go/mamba/pkg/spinner"
 )
 
 var (
@@ -55,37 +56,76 @@ func startApplication(c *mamba.Command, args []string) {
 	goPath := strings.TrimSpace(string(goPathBytes))
 
 	// Run go mod tidy to ensure dependencies are up to date
-	c.PrintInfo("Ensuring dependencies are up to date...")
-	tidyCmd := exec.Command(goPath, "mod", "tidy")
-	tidyCmd.Dir = cwd
-	if err := tidyCmd.Run(); err != nil {
-		c.PrintWarning(fmt.Sprintf("Failed to run go mod tidy: %v", err))
+	if Verbose {
+		c.PrintInfo("Running go mod tidy...")
+		tidyCmd := exec.Command(goPath, "mod", "tidy")
+		tidyCmd.Dir = cwd
+		if err := tidyCmd.Run(); err != nil {
+			c.PrintWarning(fmt.Sprintf("Failed to run go mod tidy: %v", err))
+		} else {
+			c.PrintSuccess("Dependencies updated")
+		}
+	} else {
+		err := spinner.WithSpinner("Updating dependencies...", func() error {
+			tidyCmd := exec.Command(goPath, "mod", "tidy")
+			tidyCmd.Dir = cwd
+			return tidyCmd.Run()
+		})
+		if err != nil {
+			c.PrintWarning(fmt.Sprintf("Failed to run go mod tidy: %v", err))
+		}
 	}
 
 	if docs {
+		c.PrintHeader("Documentation Generation")
+
 		// Ensure swag is installed
 		if _, err := exec.LookPath("swag"); err != nil {
-			c.PrintInfo("Installing swag...")
-			installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
-			installCmd.Stdout = os.Stdout
-			installCmd.Stderr = os.Stderr
-			if err := installCmd.Run(); err != nil {
-				c.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
+			if Verbose {
+				c.PrintInfo("Installing swag...")
+				installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
+				installCmd.Stdout = os.Stdout
+				installCmd.Stderr = os.Stderr
+				if err := installCmd.Run(); err != nil {
+					c.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
+				} else {
+					c.PrintSuccess("Swag installed successfully")
+				}
+			} else {
+				err := spinner.WithSpinner("Installing swag...", func() error {
+					installCmd := exec.Command(goPath, "install", "github.com/swaggo/swag/cmd/swag@latest")
+					return installCmd.Run()
+				})
+				if err != nil {
+					c.PrintWarning(fmt.Sprintf("Failed to install swag: %v", err))
+				}
 			}
 		}
 
 		// Generate swagger docs using swag
-		c.PrintInfo("Generating Swagger documentation...")
-		swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
-		swagCmd.Dir = cwd
-		swagCmd.Stdout = os.Stdout
-		swagCmd.Stderr = os.Stderr
+		if Verbose {
+			c.PrintInfo("Generating Swagger documentation...")
+			swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+			swagCmd.Dir = cwd
+			swagCmd.Stdout = os.Stdout
+			swagCmd.Stderr = os.Stderr
 
-		if err := swagCmd.Run(); err != nil {
-			c.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
-			c.PrintInfo("Continuing without auto-generated documentation...")
+			if err := swagCmd.Run(); err != nil {
+				c.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
+			} else {
+				c.PrintSuccess("Swagger documentation will be available at /swagger/")
+			}
 		} else {
-			c.PrintSuccess("Swagger documentation will be available at /swagger/")
+			err := spinner.WithSpinner("Generating Swagger docs...", func() error {
+				swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+				swagCmd.Dir = cwd
+				return swagCmd.Run()
+			})
+			if err != nil {
+				c.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
+			} else {
+				c.PrintSuccess("Swagger documentation will be available at /swagger/")
+			}
 		}
 	}
 

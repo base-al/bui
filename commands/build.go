@@ -43,7 +43,7 @@ func init() {
 }
 
 func buildBoth(cmd *mamba.Command, args []string) {
-	cmd.PrintInfo("Building production deployment...")
+	cmd.PrintHeader("Production Build")
 
 	// Detect project structure
 	backendDir := detectBackendDir()
@@ -75,12 +75,15 @@ func buildBoth(cmd *mamba.Command, args []string) {
 	// Create deployment files
 	if backendDir != "" && frontendDir != "" {
 		createDeploymentFiles(cmd, backendDir, distDir)
+		cmd.PrintInfo("")
 		cmd.PrintSuccess("Production build complete!")
-		cmd.PrintInfo("Deployment files created in ./" + distDir + "/")
-		cmd.PrintInfo("  • Backend binary: " + distDir + "/server")
-		cmd.PrintInfo("  • Frontend files: " + distDir + "/public/")
-		cmd.PrintInfo("  • Dockerfile: " + distDir + "/Dockerfile")
-		cmd.PrintInfo("  • CapRover: " + distDir + "/captain-definition.json")
+		cmd.PrintInfo("")
+		cmd.PrintHeader("Deployment Files")
+		cmd.PrintBullet("Backend binary: " + distDir + "/server")
+		cmd.PrintBullet("Frontend files: " + distDir + "/public/")
+		cmd.PrintBullet("Dockerfile: " + distDir + "/Dockerfile")
+		cmd.PrintBullet("CapRover config: " + distDir + "/captain-definition.json")
+		cmd.PrintInfo("")
 	} else {
 		cmd.PrintSuccess("Build complete in " + distDir + "/")
 	}
