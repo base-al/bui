@@ -372,15 +372,29 @@ func (m *{{.Model}}) ToModelResponse() *{{.Model}}ModelResponse {
     {{- end }}
     
     {{- if $nameField }}
+    {{- if eq $nameFieldType "translation.Field" }}
+    return &{{.Model}}ModelResponse{
+        Id:   m.Id,
+        Name: m.{{$nameField}}.String(), // Convert translation field to string
+    }
+    {{- else }}
     return &{{.Model}}ModelResponse{
         Id:   m.Id,
         Name: m.{{$nameField}},
     }
+    {{- end }}
     {{- else if $titleField }}
+    {{- if eq $titleFieldType "translation.Field" }}
+    return &{{.Model}}ModelResponse{
+        Id:    m.Id,
+        Title: m.{{$titleField}}.String(), // Convert translation field to string
+    }
+    {{- else }}
     return &{{.Model}}ModelResponse{
         Id:    m.Id,
         Title: m.{{$titleField}},
     }
+    {{- end }}
     {{- else }}
     return &{{.Model}}ModelResponse{
         Id:   m.Id,

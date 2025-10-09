@@ -216,7 +216,7 @@ const getStringValue = (field: any): string => {
 }
 
 {{range .Fields}}{{if and .IsRelation (eq .Relationship "belongs_to")}}// Fetch {{.RelationObjectName}} options
-const fetch{{.RelatedModel}}Options = async () => {
+const fetch{{.Name}}Options = async () => {
   try {
     const api = useApi()
     const response = await api.get<Array<{ id: number; {{.RelationDisplayField}}: string }>>('/{{.RelationModelKebab}}/all')
@@ -226,7 +226,7 @@ const fetch{{.RelatedModel}}Options = async () => {
   }
 }
 {{else if and .IsRelation (eq .Relationship "many_to_many")}}// Fetch {{.RelationObjectName}} options
-const fetch{{.RelatedModel}}Options = async () => {
+const fetch{{.Name}}Options = async () => {
   try {
     const api = useApi()
     const response = await api.get<Array<{ id: number; {{if .RelationDisplayField}}{{.RelationDisplayField}}{{else}}name{{end}}: string }>>('/{{.RelationModelKebab}}/all')
@@ -251,7 +251,7 @@ watch(() => props.item, (item) => {
 }, { immediate: true })
 
 onMounted(() => {
-{{range .Fields}}{{if and .IsRelation (eq .Relationship "belongs_to")}}  fetch{{.RelatedModel}}Options()
-{{else if and .IsRelation (eq .Relationship "many_to_many")}}  fetch{{.RelatedModel}}Options()
+{{range .Fields}}{{if and .IsRelation (eq .Relationship "belongs_to")}}  fetch{{.Name}}Options()
+{{else if and .IsRelation (eq .Relationship "many_to_many")}}  fetch{{.Name}}Options()
 {{end}}{{end}}})
 </script>
