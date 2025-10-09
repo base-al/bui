@@ -522,7 +522,7 @@ func GenerateFileFromTemplate(dir, filename, templateName string, naming *Naming
 		return
 	}
 
-	fmt.Printf("Generated %s\n", outputFile)
+	// Logging is handled by the caller (generate commands)
 }
 
 // GenerateNuxtFile generates a Nuxt/TypeScript file from a template
