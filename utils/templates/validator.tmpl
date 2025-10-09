@@ -26,9 +26,9 @@ func Validate{{ .Model }}CreateRequest(req *models.Create{{ .Model }}Request) er
 		return err
 	}
 
-	// Validate select fields
+	// Validate select/radio fields (not checkbox - those are JSON arrays)
 	{{- range .Fields}}
-	{{- if .IsSelect}}
+	{{- if and .IsSelect (ne .SelectType "checkbox")}}
 	if err := validateSelectField("{{.JSONName}}", req.{{.Name}}, []string{ {{range $i, $opt := .Options}}{{if $i}}, {{end}}"{{$opt}}"{{end}} }); err != nil {
 		return err
 	}
@@ -62,9 +62,9 @@ func Validate{{ .Model }}UpdateRequest(req *models.Update{{ .Model }}Request, id
 		}
 	}
 
-	// Validate select fields (only if provided)
+	// Validate select/radio fields (only if provided, not checkbox - those are JSON arrays)
 	{{- range .Fields}}
-	{{- if .IsSelect}}
+	{{- if and .IsSelect (ne .SelectType "checkbox")}}
 	if req.{{.Name}} != "" {
 		if err := validateSelectField("{{.JSONName}}", req.{{.Name}}, []string{ {{range $i, $opt := .Options}}{{if $i}}, {{end}}"{{$opt}}"{{end}} }); err != nil {
 			return err
