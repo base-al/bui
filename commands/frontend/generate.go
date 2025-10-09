@@ -12,9 +12,6 @@ import (
 	"github.com/base-go/mamba"
 )
 
-// Verbose is set by root command
-var Verbose *bool
-
 var GenerateFrontendCmd = &mamba.Command{
 	Use:     "frontend [name] [field:type...]",
 	Aliases: []string{"fe", "ui"},
