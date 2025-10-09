@@ -262,7 +262,7 @@ func buildBackendToDist(cmd *mamba.Command, backendDir, distDir string) {
 
 	// Copy necessary directories
 	cmd.PrintInfo("Copying backend assets...")
-	copyDir(filepath.Join(backendDir, "docs"), filepath.Join(distDir, "docs"))
+	copyDir(filepath.Join(backendDir, "swag"), filepath.Join(distDir, "swag"))
 	copyDir(filepath.Join(backendDir, "templates"), filepath.Join(distDir, "templates"))
 	copyDir(filepath.Join(backendDir, "static"), filepath.Join(distDir, "static"))
 
@@ -363,7 +363,7 @@ This directory contains a complete production build ready for deployment.
 ## Structure
 - server - Backend binary
 - public/ - Frontend static files
-- docs/ - Swagger documentation
+- swag/ - Swagger documentation
 - templates/ - Email templates
 - storage/ - File storage directory
 - Dockerfile - Docker image definition

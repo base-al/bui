@@ -191,14 +191,14 @@ func generateSwaggerDocs(cmd *mamba.Command, backendDir string) {
 	}
 
 	// Generate swagger docs
-	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./docs", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
+	swagCmd := exec.Command("swag", "init", "--dir", "./", "--output", "./swagger", "--parseDependency", "--parseInternal", "--parseVendor", "--parseDepth", "1", "--generatedTime", "false")
 	swagCmd.Dir = backendDir
 	swagCmd.Stdout = os.Stdout
 	swagCmd.Stderr = os.Stderr
 
 	if err := swagCmd.Run(); err != nil {
-		cmd.PrintWarning(fmt.Sprintf("Failed to generate docs: %v", err))
+		cmd.PrintWarning(fmt.Sprintf("Failed to generate swagger docs: %v", err))
 	} else {
-		cmd.PrintSuccess("Swagger documentation generated at /docs/")
+		cmd.PrintSuccess("Swagger documentation generated at /swagger/")
 	}
 }
