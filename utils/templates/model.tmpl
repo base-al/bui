@@ -336,11 +336,11 @@ func (m *{{.Model}}) ToResponse() *{{.Model}}Response {
     {{- if eq .Relationship "belongs_to" }}
     {{- if hasSuffix .Name "Id" }}
     {{- $objectName := TrimIdSuffix .Name }}
-    if m.{{.Name}} != 0 {
+    if m.{{$objectName}} != nil {
         response.{{$objectName}} = m.{{$objectName}}.ToModelResponse()
     }
     {{- else }}
-    if m.{{.Name}}Id != 0 {
+    if m.{{.Name}} != nil {
         response.{{.RelatedModel}} = m.{{.Name}}.ToModelResponse()
     }
     {{- end }}
