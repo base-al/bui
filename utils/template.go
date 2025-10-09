@@ -60,6 +60,9 @@ type TemplateData struct {
 	// Fields including relations
 	Fields []Field
 
+	// Display field (first string field, used for relations)
+	DisplayField string
+
 	// Computed properties
 	HasRelations          bool
 	HasBelongsTo          bool
@@ -146,7 +149,23 @@ func NewTemplateData(modelName string, fieldDefs []string) *TemplateData {
 	// Add standard imports
 	td.addStandardImports()
 
+	// Determine display field (first non-relation string field)
+	td.setDisplayField()
+
 	return td
+}
+
+// setDisplayField determines the display field for this model
+// Uses the first string-type field that's not a relation
+func (td *TemplateData) setDisplayField() {
+	for _, field := range td.Fields {
+		if !field.IsRelation && !field.IsMediaFK && (field.Type == "string" || field.Type == "translation.Field") {
+			td.DisplayField = field.JSONName
+			return
+		}
+	}
+	// Fallback to "id" if no string fields found
+	td.DisplayField = "id"
 }
 
 // updateComputedProperties updates computed properties based on field
@@ -421,6 +440,7 @@ func GenerateFileFromTemplate(dir, filename, templateName string, naming *Naming
 		"toTitle":      ToTitle,
 		"ToSnakeCase":  ToSnakeCase,
 		"ToPascalCase": ToPascalCase,
+		"ToCamelCase":  ToCamelCase,
 		"ToKebabCase":  ToKebabCase,
 		"ToPlural":     ToPlural,
 		"TrimIdSuffix": TrimIdSuffix,
@@ -537,6 +557,7 @@ func GenerateNuxtFile(dir, filename, templateName string, data interface{}) erro
 		"toTitle":      ToTitle,
 		"ToSnakeCase":  ToSnakeCase,
 		"ToPascalCase": ToPascalCase,
+		"ToCamelCase":  ToCamelCase,
 		"ToKebabCase":  ToKebabCase,
 		"ToPlural":     ToPlural,
 		"TrimIdSuffix": TrimIdSuffix,

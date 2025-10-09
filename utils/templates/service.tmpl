@@ -363,6 +363,13 @@ func (s *{{.Model}}Service) GetAll(page *int, limit *int, sortBy *string, sortOr
     {{- end}}
     {{- end}}
 
+    // Preload belongs_to relationships for list response
+    {{- range .Fields}}
+    {{- if and .IsRelation (eq .Relationship "belongs_to")}}
+    query = query.Preload("{{.RelatedModel}}")
+    {{- end}}
+    {{- end}}
+
     // Execute query
     if err := query.Find(&items).Error; err != nil {
         s.Logger.Error("failed to get {{toLower .Plural}}",

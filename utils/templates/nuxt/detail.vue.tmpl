@@ -59,9 +59,22 @@
             />
 {{- else if .IsMedia}}
             <TableMediaField :value="item.{{.JSONName}}" />
+{{- else if eq .FormType "date"}}
+            <p class="text-base font-medium">{{`{{ formatDate(item.`}}{{.JSONName}}{{`) }}`}}</p>
+{{- else if eq .FormType "datetime"}}
+            <p class="text-base font-medium">{{`{{ formatDateTime(item.`}}{{.JSONName}}{{`) }}`}}</p>
 {{- else}}
             <p class="text-base font-medium">{{`{{ item.`}}{{.JSONName}}{{` }}`}}</p>
 {{- end}}
+          </div>
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}          <div>
+            <label class="text-sm text-gray-600 dark:text-gray-400">{{.RelationLabel}}</label>
+            <p class="text-base font-medium">
+              <NuxtLink v-if="item.{{.RelationObjectName}}" :to="`/app/{{.RelationModelKebab}}/${item.{{.RelationObjectName}}.id}`" class="text-primary hover:underline">
+                {{`{{ item.`}}{{.RelationObjectName}}.{{.RelationDisplayField}}{{` }}`}}
+              </NuxtLink>
+              <span v-else class="text-gray-400">-</span>
+            </p>
           </div>
 {{end}}{{end}}        </div>
       </UCard>
@@ -141,6 +154,7 @@ const route = useRoute()
 const router = useRouter()
 const {{.VarPlural}}Store = use{{.Plural}}Store()
 const toast = useToast()
+const { formatDate } = useDateFormat()
 
 const item = ref()
 const loading = ref(false)

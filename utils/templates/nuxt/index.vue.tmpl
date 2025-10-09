@@ -32,7 +32,7 @@
         :columns="columns"
         :loading="loading"
         table-name="{{.Plural}}"
-        search-column="{{range .Fields}}{{if eq .JSONName "name"}}name{{end}}{{end}}"
+        search-column="{{.DisplayField}}"
         search-placeholder="Search {{.PluralLower}}..."
         :pagination="{
           current_page: pagination.page,
@@ -86,6 +86,7 @@ definePageMeta({
 const {{.VarPlural}}Store = use{{.Plural}}Store()
 const { {{.VarPlural}}, loading, pagination } = storeToRefs({{.VarPlural}}Store)
 const toast = useToast()
+const { formatDate } = useDateFormat()
 
 const showFormModal = ref(false)
 const showDeleteModal = ref(false)
@@ -113,7 +114,31 @@ const columns: TableColumn<{{.Model}}>[] = [
         value: row.original.{{.JSONName}},
       })
     }
+{{- else if eq .FormType "date"}}
+    cell: ({ row }) => {
+      return formatDate(row.original.{{.JSONName}})
+    }
+{{- else if eq .FormType "datetime"}}
+    cell: ({ row }) => {
+      return formatDateTime(row.original.{{.JSONName}})
+    }
 {{- end}}
+  },
+{{else if and .IsRelation (eq .Relationship "belongs_to")}}  {
+    accessorKey: '{{.RelationObjectName}}',
+    header: '{{.RelationLabel}}',
+    cell: ({ row }) => {
+      const {{.RelationObjectName}} = row.original.{{.RelationObjectName}}
+      if (!{{.RelationObjectName}}) return '-'
+      return h('a', {
+        href: '/app/{{.RelationModelKebab}}/' + {{.RelationObjectName}}.id,
+        class: 'text-primary hover:underline cursor-pointer',
+        onClick: (e: Event) => {
+          e.stopPropagation()
+          navigateTo('/app/{{.RelationModelKebab}}/' + {{.RelationObjectName}}.id)
+        }
+      }, {{.RelationObjectName}}.{{.RelationDisplayField}})
+    }
   },
 {{end}}{{end}}  {
     accessorKey: 'created_at',

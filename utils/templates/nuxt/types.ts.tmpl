@@ -6,6 +6,13 @@ export interface {{.Model}} {
 {{range .Fields}}{{if not .IsRelation}}
   // {{.Name}} field
   {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+{{else if eq .Relationship "belongs_to"}}
+  // {{.Name}} - belongs_to relationship
+  {{.JSONName}}: number
+  {{.RelationObjectName}}?: {
+    id: number
+    {{.RelationDisplayField}}: string
+  }
 {{end}}{{end}}
   // Timestamps
   created_at: string
@@ -16,6 +23,7 @@ export interface {{.Model}} {
 // Create/Update Input Types
 export interface Create{{.Model}}Input {
 {{range .Fields}}{{if not .IsRelation}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}{{if not .IsRequired}}?{{end}}: {{.TypeScriptType}}{{if .IsNullable}} | null{{end}}
+{{else if eq .Relationship "belongs_to"}}  {{.JSONName}}{{if not .IsRequired}}?{{end}}: number
 {{end}}{{end}}}
 
 export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}
@@ -23,7 +31,8 @@ export interface Update{{.Model}}Input extends Partial<Create{{.Model}}Input> {}
 // Filter Input Type
 export interface {{.Model}}FilterInput {
   search?: string
-{{range .Fields}}{{if .IsFilterable}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}?: {{.TypeScriptType}}
+{{range .Fields}}{{if and .IsFilterable (not .IsRelation)}}  {{if .IsMedia}}{{.MediaFKJSONName}}{{else}}{{.JSONName}}{{end}}?: {{.TypeScriptType}}
+{{else if and .IsFilterable (eq .Relationship "belongs_to")}}  {{.JSONName}}?: number
 {{end}}{{end}}}
 
 // Sort Input Type

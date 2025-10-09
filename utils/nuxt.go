@@ -7,19 +7,24 @@ import (
 // NuxtField extends Field with Nuxt/TypeScript specific information
 type NuxtField struct {
 	Field
-	TypeScriptType string
-	FormType       string
-	FormRows       int
-	ShowInTable    bool
-	ShowInForm     bool
-	ShowInDetail   bool
-	IsFilterable   bool
-	IsSortable     bool
-	IsNullable     bool
-	IsRequired     bool
-	DefaultValue   string
-	Label          string
-	LabelLower     string
+	TypeScriptType      string
+	FormType            string
+	FormRows            int
+	ShowInTable         bool
+	ShowInForm          bool
+	ShowInDetail        bool
+	IsFilterable        bool
+	IsSortable          bool
+	IsNullable          bool
+	IsRequired          bool
+	DefaultValue        string
+	Label               string
+	LabelLower          string
+	RelationLabel        string // For belongs_to: Clean label without "_id" suffix (e.g., "Client" instead of "Client Id")
+	RelationDisplayField string // For belongs_to: Display field of the related model (e.g., "name" for Client)
+	RelationModelPlural  string // Plural form of related model for API calls
+	RelationModelKebab   string // Kebab case for API endpoints
+	RelationObjectName   string // For belongs_to: JSONName with _id suffix removed (e.g., "client" from "client_id")
 }
 
 // ConvertToNuxtField converts a Go Field to a NuxtField with TypeScript types
@@ -43,6 +48,20 @@ func ConvertToNuxtField(field Field) NuxtField {
 		Label:          ToCapitalCase(cleanJSONName),
 		LabelLower:     strings.ToLower(ToCapitalCase(cleanJSONName)),
 	}
+
+	// Handle relation-specific fields
+	if field.IsRelation && field.Relationship == "belongs_to" && field.RelatedModel != "" {
+		nf.FormType = "select"
+		nf.RelationModelPlural = ToPlural(field.RelatedModel)
+		nf.RelationModelKebab = ToKebabCase(ToPlural(field.RelatedModel))
+		nf.RelationObjectName = strings.TrimSuffix(field.JSONName, "_id")
+		nf.RelationLabel = ToCapitalCase(nf.RelationObjectName)
+		nf.ShowInForm = false   // Don't show in regular form section, will be handled by relation section
+		nf.ShowInTable = false  // Don't show FK in table, will show relation object instead
+		nf.ShowInDetail = false // Don't show FK in detail, will show relation object instead
+		nf.IsFilterable = true
+	}
+
 	return nf
 }
 
@@ -67,7 +86,7 @@ func GetTypeScriptType(goType string) string {
 		return "number"
 	case goType == "bool":
 		return "boolean"
-	case goType == "time.Time":
+	case goType == "time.Time", goType == "types.DateTime":
 		return "string"
 	case goType == "datatypes.JSON", goType == "json.RawMessage":
 		return "Record<string, any>"
@@ -93,6 +112,12 @@ func GetFormType(field Field) string {
 		return "checkbox"
 	case "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "float32", "float64":
 		return "number"
+	case "types.DateTime":
+		// types.DateTime is used for date/timestamp fields
+		if strings.Contains(fieldName, "time") {
+			return "datetime"
+		}
+		return "date"
 	case "time.Time":
 		if strings.Contains(fieldName, "date") && !strings.Contains(fieldName, "time") {
 			return "date"
@@ -143,6 +168,11 @@ func ShouldShowInTable(field Field) bool {
 		return false
 	}
 
+	// Don't show belongs_to FK fields in table (show the relation object instead)
+	if field.IsRelation && field.Relationship == "belongs_to" {
+		return false
+	}
+
 	// Never show large text fields or JSON in table
 	if field.Type == "text" || field.Type == "datatypes.JSON" || field.Type == "json.RawMessage" {
 		return false
@@ -182,7 +212,7 @@ func IsFilterable(field Field) bool {
 	switch field.Type {
 	case "string", "bool", "int", "uint", "float32", "float64":
 		return true
-	case "time.Time":
+	case "time.Time", "types.DateTime":
 		return true
 	default:
 		return false
@@ -193,7 +223,7 @@ func IsFilterable(field Field) bool {
 func IsSortable(field Field) bool {
 	// Can sort by: strings, numbers, dates
 	switch field.Type {
-	case "string", "int", "uint", "float32", "float64", "time.Time":
+	case "string", "int", "uint", "float32", "float64", "time.Time", "types.DateTime":
 		return true
 	default:
 		return false
@@ -217,8 +247,9 @@ func GetDefaultValue(field Field) string {
 	if field.Type == "datatypes.JSON" || field.Type == "json.RawMessage" {
 		return "{}"
 	}
-	if field.Type == "time.Time" {
-		return "null"
+	if field.Type == "time.Time" || field.Type == "types.DateTime" {
+		// Use empty string for date/datetime fields to avoid TypeScript errors
+		return "''"
 	}
 	return "undefined"
 }

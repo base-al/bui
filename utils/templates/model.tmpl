@@ -256,13 +256,6 @@ type {{.Model}}SelectOption struct {
     Name string `json:"name"` {{- if $nameField }}// From {{$nameField}} field{{- else if $titleField }}// From {{$titleField}} field{{- else }}// Display name{{- end }}
 }
 
-// MediaListView represents a simplified media object for list responses
-type MediaListView struct {
-    Type string `json:"type"`
-    Name string `json:"name"`
-    URL  string `json:"url"`
-}
-
 // {{.Model}}ListResponse represents the response for list operations (optimized for performance)
 type {{.Model}}ListResponse struct {
     Id        uint           `json:"id"`
@@ -272,6 +265,14 @@ type {{.Model}}ListResponse struct {
     {{- range .Fields}}
     {{- if and (not .IsRelation) (eq .Relationship "") (ne .Type "*storage.Attachment") (not .IsMedia) (not .IsMediaFK) }}
     {{.Name}} {{.Type}} `json:"{{.JSONName}}"`
+    {{- end }}
+    {{- end}}
+    {{- /* Include belongs_to relationships in list response */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if .RelatedModel }}
+    {{.RelatedModel}} *{{.RelatedModel}}ModelResponse `json:"{{ToCamelCase .RelatedModel}},omitempty"`
+    {{- end }}
     {{- end }}
     {{- end}}
     {{- /* Include toMany relationships in list response */}}
@@ -287,7 +288,7 @@ type {{.Model}}ListResponse struct {
     {{- /* Include simplified media fields in list response */}}
     {{- range .Fields}}
     {{- if .IsMedia }}
-    {{.Name}} *MediaListView `json:"{{.JSONName}}"`
+    {{.Name}} *media.MediaListView `json:"{{.JSONName}}"`
     {{- end }}
     {{- end}}
     {{- /* Include file attachments in list response */}}
@@ -448,12 +449,23 @@ func (m *{{.Model}}) ToListResponse() *{{.Model}}ListResponse {
     {{- range .Fields}}
     {{- if .IsMedia }}
     if m.{{.Name}} != nil && m.{{.Name}}.File != nil {
-        response.{{.Name}} = &MediaListView{
+        response.{{.Name}} = &media.MediaListView{
             Type: m.{{.Name}}.Type,
             Name: m.{{.Name}}.Name,
             URL:  m.{{.Name}}.File.URL,
         }
     }
+    {{- end }}
+    {{- end}}
+
+    {{- /* Populate belongs_to relationships */}}
+    {{- range .Fields}}
+    {{- if eq .Relationship "belongs_to" }}
+    {{- if .RelatedModel }}
+    if m.{{.RelatedModel}} != nil {
+        response.{{.RelatedModel}} = m.{{.RelatedModel}}.ToModelResponse()
+    }
+    {{- end }}
     {{- end }}
     {{- end}}
 
