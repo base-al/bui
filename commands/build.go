@@ -20,9 +20,15 @@ var buildCmd = &mamba.Command{
 Examples:
   bui build              # Build both backend and frontend
   bui build backend      # Build backend only
-  bui build frontend     # Build frontend only`,
+  bui build frontend     # Build frontend only
+  bui build --arch arm64 # Build for arm64 architecture
+  bui build --arch amd64 # Build for amd64 architecture`,
 	Run: buildBoth,
 }
+
+var (
+	buildArch string
+)
 
 var buildBackendCmd = &mamba.Command{
 	Use:   "backend",
@@ -40,6 +46,10 @@ func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.AddCommand(buildBackendCmd)
 	buildCmd.AddCommand(buildFrontendCmd)
+
+	// Add architecture flag
+	buildCmd.Flags().StringVar(&buildArch, "arch", "", "Target architecture (amd64, arm64)")
+	buildBackendCmd.Flags().StringVar(&buildArch, "arch", "", "Target architecture (amd64, arm64)")
 }
 
 func buildBoth(cmd *mamba.Command, args []string) {
@@ -253,9 +263,17 @@ func buildBackendToDist(cmd *mamba.Command, backendDir, distDir string) {
 	// Build binary
 	err := spinner.WithSpinner("Compiling backend binary...", func() error {
 		outputPath := filepath.Join("..", distDir, "server")
-		buildCmd := exec.Command("go", "build", "-o", outputPath, "main.go")
-		buildCmd.Dir = backendDir
-		return buildCmd.Run()
+		buildCommand := exec.Command("go", "build", "-o", outputPath, "main.go")
+		buildCommand.Dir = backendDir
+
+		// Set architecture if specified
+		if buildArch != "" {
+			cmd.PrintInfo("Building for architecture: " + buildArch)
+			buildCommand.Env = append(os.Environ(), "GOARCH="+buildArch)
+			buildCommand.Env = append(buildCommand.Env, "CGO_ENABLED=1")
+		}
+
+		return buildCommand.Run()
 	})
 
 	if err != nil {

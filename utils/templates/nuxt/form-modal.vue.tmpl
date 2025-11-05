@@ -2,8 +2,8 @@
    <UModal 
   v-model:open="isOpen" 
   :ui="{ content: 'max-w-6xl' }"
-  :title="isEdit ? 'Edit `{{.Model}}' : 'Create `{{.Model}}'"
-  :description="isEdit ? 'Edit `{{.Model}}' : 'Create `{{.Model}}'"
+  :title="isEdit ? 'Edit {{.Model}}' : 'Create {{.Model}}'"
+  :description="isEdit ? 'Edit {{.Model}}' : 'Create {{.Model}}'"
   >
     <template #body>
     <form @submit.prevent="handleSubmit" class="space-y-6">
