@@ -110,8 +110,8 @@ The CLI intelligently detects field purposes by name:
 - `url`, `link` - URL input
 - `description`, `content`, `bio` - Textarea
 - `status`, `category`, `type` - Select dropdown
-- `*_id` (ending with _id) - Foreign key (number)
-
+### BASE 
+Bui uses base framework for api, check base.al/docs
 ## Other Commands
 
 ```bash
